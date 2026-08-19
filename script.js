@@ -4,7 +4,7 @@
    Left blank, the form falls back to opening the visitor's
    mail client with a pre-filled message.
    ============================================================ */
-const CONTACT_ENDPOINT = ""; // e.g. "https://script.google.com/macros/s/XXXX/exec"
+const CONTACT_ENDPOINT = "https://script.google.com/macros/s/AKfycbxTkzMB0tnwQQ3BTuwSGV-vEK9zHsnQ9Jw_6kWVMvoRmKuuYleN7mOCraxNi206u4It/exec"; // e.g. "https://script.google.com/macros/s/XXXX/exec"
 const CONTACT_EMAIL = "jatinchaudhary910official@gmail.com";
 
 /* ============================================================
