@@ -20,9 +20,9 @@ const CORE_FOCUS = [
 
 const IMPACT_STATS = [
   { value: 1.65, prefix: "₹", suffix: " Cr+", decimals: 2, label: "Documented annual savings" },
-  { display: "6–60%+", label: "TAT reduction range" },
-  { display: "86%/98%", label: "Error / penalty reduction" },
-  { value: 16, suffix: "+", decimals: 0, label: "Processes enhanced" },
+  { display: "30–70%+", label: "TAT reduction range" },
+  { value: 78, suffix: "%", decimals: 0, label: "Error / penalty reduction" },
+  { value: 11, suffix: "+", decimals: 0, label: "Processes enhanced" },
   { value: 4, suffix: "+", decimals: 0, label: "Years in Product & Process" },
 ];
 
@@ -39,7 +39,8 @@ const TIMELINE = [
       ]},
       { heading: "Shipped Products & Measured Outcomes", items: [
         "AI-assisted internal PM platform, built to replace Zoho — ₹35L in annual licensing savings",
-        "Redesigned customer onboarding into one unified module — TAT cut from 8–9 days to 2–3 days",
+        "Built and trained an AI claims-query chatbot for end customers — cut specific repeat call-centre query volume by 71%",
+        "Redesigned customer onboarding into one unified module — TAT cut from 8–9 days to 2–3 days (about 70%)",
         "Owned Support Module Automation from BRD/PRD through UAT to production — ₹40L in annual savings",
         "Rebuilt Recovery Audit Management as a governed workflow — zero missed cases since launch",
       ]},
@@ -52,15 +53,15 @@ const TIMELINE = [
   {
     step: "02", role: "Assistant Manager — Business Process Re-Engineering",
     org: "Paramount Health Services & Insurance TPA · Mumbai", period: "MAR 2024 — FEB 2026",
-    summary: "Product owner for an in-house enterprise ticketing platform, from problem discovery to GA — embedded AI/ML query automation for a 30% TAT reduction and ₹20L in annual savings.",
+    summary: "Product owner for an in-house enterprise ticketing platform and a new modular Benefits configuration module — embedding AI/ML query automation and re-architecting benefit mapping for new-age policies.",
     detail: [
       { heading: "Product Ownership & Roadmap", items: [
-        "Owned the full lifecycle: discovery, requirement gathering, solution design, roadmap, and launch",
+        "Owned the full lifecycle for both initiatives: discovery, requirement gathering, solution design, roadmap, and launch",
         "Defined and sequenced the feature roadmap against business priority and engineering capacity",
       ]},
-      { heading: "Shipped Product & Measured Outcomes", items: [
-        "Integrated AI/ML query resolution into the platform — 30% reduction in turnaround time",
-        "Delivered ₹20L in annual operational savings against pre-automation baseline",
+      { heading: "Shipped Products & Measured Outcomes", items: [
+        "Integrated AI/ML query resolution into the ticketing platform — 82% user adoption within 4 months, 30% reduction in turnaround time, and ₹20L in annual savings",
+        "Revamped and launched a modular Benefits configuration module supporting multi-level benefit structures for new-age policies — reduced benefit-mapping-related penalties by 78%",
         "Built leadership-facing performance analytics to track adoption and resolution quality post-launch",
       ]},
       { heading: "Stakeholder Leadership", items: [
@@ -72,7 +73,7 @@ const TIMELINE = [
   {
     step: "03", role: "Senior Executive — Business Process Re-Engineering",
     org: "Paramount Health Services & Insurance TPA · Mumbai", period: "FEB 2023 — MAR 2024",
-    summary: "Diagnosed and redesigned 11+ critical business processes using data-driven bottleneck analysis, delivering an average 21% efficiency gain across 18+ technology-enabled initiatives.",
+    summary: "Diagnosed and redesigned 11+ critical business processes using data-driven bottleneck analysis, delivering an average 21% efficiency gain and a 78% cut in manual processing errors across 18+ technology-enabled initiatives.",
     detail: [
       { heading: "Problem Discovery & Solution Design", items: [
         "Ran bottleneck analysis and process mapping across 11+ business processes to surface root causes",
@@ -80,7 +81,8 @@ const TIMELINE = [
       ]},
       { heading: "Delivery & Measured Outcomes", items: [
         "Delivered 18+ technology initiatives in partnership with Product, Business, and Engineering",
-        "Average 21% improvement in process efficiency across the functions touched",
+        "Average 21% improvement in process efficiency, with a 78% reduction in manual processing errors",
+        "Raised internal user satisfaction scores from 60% to 89% while cutting turnaround time by 30%",
       ]},
       { heading: "Stakeholder Leadership", items: [
         "Partnered cross-functionally to gather requirements and define functional solutions",
@@ -123,22 +125,22 @@ const CASE_STUDIES = [
     pmSkills:["Build vs. buy analysis","AI/ML integration","Cost optimization","0→1 internal tool design"],
     metrics:[{val:"₹35L",label:"Annual savings"},{val:"10+",label:"Initiatives tracked"}],
   },
-  { id:"benefit-module-revamp", category:"platform", catLabel:"Core Platform", tag:"02",
-    title:"Modular Benefit Module & Claim Engine Revamp",
+  { id:"claims-chatbot", category:"ai", catLabel:"AI/Automation", tag:"02",
+    title:"AI Claims-Query Chatbot for End Customers",
     org:"Medi Assist TPA — CTO Office · 2026",
-    problem:"The legacy benefit engine was built for single-benefit policies and couldn't correctly adjudicate modular, multi-benefit, or cross-benefit plans — driving adjudication errors, TAT loss, and financial penalties.",
+    problem:"Call-centre volume was dominated by a set of recurring claims queries customers could self-serve if answered clearly and consistently — but no automated channel existed to intercept them before they reached an agent.",
     approach:[
-      "Mapped the existing claims logic end-to-end to isolate where multi-benefit adjudication broke down",
-      "Proposed a modular architecture of reusable benefit components that combine to auto-calculate and validate claims across policy types",
-      "Drove the redesign through engineering scoping, phased rollout, and risk sign-off with the business",
+      "Analyzed recurring call-centre query patterns and existing claims correspondence to identify high-frequency, self-serviceable queries",
+      "Defined the chatbot's scope, conversation flows, and training data directly from that query analysis",
+      "Built and trained the chatbot, then validated accuracy against real call-centre queries before rollout",
     ],
     impact:[
-      "86% reduction in adjudication errors",
-      "98% reduction in claims-related penalties",
-      "21% reduction in claims TAT",
+      "71% reduction in specific repeat query volume at the call centre",
+      "Faster, self-serve resolution for customers on high-frequency claims questions",
+      "Reduced load on call-centre agents for repetitive queries",
     ],
-    pmSkills:["System/architecture redesign","Complex business-logic mapping","Domain PM (health insurance)","Risk mitigation"],
-    metrics:[{val:"86%",label:"Fewer errors"},{val:"98%",label:"Fewer penalties"}],
+    pmSkills:["Conversational AI design","Query pattern analysis","0→1 product design","Customer self-service"],
+    metrics:[{val:"71%",label:"Fewer repeat queries"},{val:"0→1",label:"New self-serve channel"}],
   },
   { id:"onboarding-transformation", category:"transformation", catLabel:"Process Transformation", tag:"03",
     title:"Enterprise Customer Onboarding Transformation",
@@ -150,12 +152,12 @@ const CASE_STUDIES = [
       "Coordinated the cross-functional rollout and change management across all three teams",
     ],
     impact:[
-      "TAT cut from 8–9 days to 2–3 days (60%+ reduction)",
+      "TAT cut from 8–9 days to 2–3 days (about 70% reduction)",
       "Real-time process visibility for leadership and customers",
       "Single system of record replacing three disconnected handoffs",
     ],
     pmSkills:["Cross-functional workflow orchestration","Systems integration","Journey mapping & UX redesign"],
-    metrics:[{val:"60%+",label:"TAT reduction"},{val:"2–3d",label:"From 8–9 days"}],
+    metrics:[{val:"~70%",label:"TAT reduction"},{val:"2–3d",label:"From 8–9 days"}],
   },
   { id:"support-automation", category:"ai", catLabel:"AI/Automation", tag:"04",
     title:"Support & Operational Workflow Automation",
@@ -174,23 +176,7 @@ const CASE_STUDIES = [
     pmSkills:["End-to-end product lifecycle","Requirement elicitation","UAT management","Process automation"],
     metrics:[{val:"₹40L",label:"Annual savings"},{val:"E2E",label:"Lifecycle ownership"}],
   },
-  { id:"ticketing-platform", category:"ai", catLabel:"AI/Automation", tag:"05",
-    title:"AI/ML-Powered Enterprise Ticketing Platform",
-    org:"Paramount Health Services & Insurance TPA · 2024–2026",
-    problem:"No in-house system existed to track and resolve enterprise queries at scale — resolution relied on manual routing with no analytics layer for leadership to see where time and quality were being lost.",
-    approach:[
-      "Owned the platform from discovery through roadmap definition and launch",
-      "Prioritized AI/ML-based query resolution as the core differentiator over manual routing",
-      "Built leadership-facing analytics dashboards to track resolution speed and quality post-launch",
-    ],
-    impact:[
-      "₹20L in annual operational cost savings",
-      "30% reduction in turnaround time (TAT)",
-    ],
-    pmSkills:["Roadmap definition","AI/ML feature prioritization","Analytics dashboarding"],
-    metrics:[{val:"₹20L",label:"Annual savings"},{val:"30%",label:"TAT reduction"}],
-  },
-  { id:"recovery-audit", category:"governance", catLabel:"Governance", tag:"06",
+  { id:"recovery-audit", category:"governance", catLabel:"Governance", tag:"05",
     title:"Centralized Recovery Audit Management System",
     org:"Medi Assist TPA — CTO Office · 2026",
     problem:"Recovery tracking ran on a fragile, manual Google Apps Script setup with no audit trail, no access control, and real exposure to missed recoveries and penalties.",
@@ -207,7 +193,7 @@ const CASE_STUDIES = [
     pmSkills:["Risk mitigation","Tech-debt reduction","Legacy system migration"],
     metrics:[{val:"Zero",label:"Missed cases"},{val:"↓",label:"Recovery TAT"}],
   },
-  { id:"vendor-governance", category:"governance", catLabel:"Governance", tag:"07",
+  { id:"vendor-governance", category:"governance", catLabel:"Governance", tag:"06",
     title:"Vendor & Resource Engagement Governance Framework",
     org:"Medi Assist TPA — CTO Office · 2026",
     problem:"Third-party resourcing across 24+ engineering and operations roles had no consistent evaluation, negotiation, or delivery-governance process — leaving cost and delivery risk largely unmanaged.",
@@ -223,22 +209,56 @@ const CASE_STUDIES = [
     pmSkills:["Vendor governance","Budget management","Commercial negotiation","Agile resource planning"],
     metrics:[{val:"₹70L",label:"Annual savings"},{val:"24+",label:"Resources negotiated"}],
   },
-  { id:"inhouse-ticketing-ops", category:"platform", catLabel:"Core Platform", tag:"08",
-    title:"Enterprise In-House Ticketing & Operations Platform",
-    org:"Paramount Health Services & Insurance TPA · 2023–2024",
-    problem:"16+ internal and external operational processes had no unified system to scope, prioritize, or track improvements — leaving efficiency gains ad hoc and hard to measure.",
+  { id:"ticketing-platform", category:"ai", catLabel:"AI/Automation", tag:"07",
+    title:"AI/ML-Powered Enterprise Ticketing Platform",
+    org:"Paramount Health Services & Insurance TPA · 2024–2026",
+    problem:"No in-house system existed to track and resolve enterprise queries at scale — resolution relied on manual routing with no analytics layer for leadership to see where time and quality were being lost.",
     approach:[
-      "Took end-to-end ownership of the internal ticketing ecosystem as product owner",
-      "Scoped enhancements against 16+ processes and prioritized them by operational impact",
-      "Partnered with stakeholders across functions to align scope before each release",
+      "Owned the platform from discovery through roadmap definition and launch",
+      "Prioritized AI/ML-based query resolution as the core differentiator over manual routing",
+      "Built leadership-facing analytics dashboards to track resolution speed and quality post-launch",
     ],
     impact:[
-      "10% increase in overall operational profit",
-      "6% reduction in turnaround time",
-      "2% reduction in operational cost",
+      "82% user adoption within 4 months of launch",
+      "₹20L in annual operational cost savings",
+      "30% reduction in turnaround time (TAT)",
     ],
-    pmSkills:["Stakeholder alignment","Process design","Product scoping","Cross-functional execution"],
-    metrics:[{val:"16+",label:"Processes enhanced"},{val:"10%",label:"Profit increase"}],
+    pmSkills:["Roadmap definition","AI/ML feature prioritization","Analytics dashboarding","User adoption strategy"],
+    metrics:[{val:"82%",label:"User adoption"},{val:"₹20L",label:"Annual savings"}],
+  },
+  { id:"benefit-module-revamp", category:"platform", catLabel:"Core Platform", tag:"08",
+    title:"Modular Benefits Configuration Module",
+    org:"Paramount Health Services & Insurance TPA · 2024–2026",
+    problem:"The legacy benefits engine was built for single-tier policies and couldn't process the modular, multi-level benefit structures new-age policies required — driving benefit-mapping errors and recurring financial penalties.",
+    approach:[
+      "Mapped the existing benefit-configuration logic end-to-end to isolate where multi-level, modular structures broke the system",
+      "Designed and implemented a new Benefits configuration module supporting reusable, multi-level benefit components",
+      "Automated end-to-end benefit mapping in place of the manual, error-prone configuration process",
+    ],
+    impact:[
+      "78% reduction in benefit-mapping-related penalties",
+      "Modular support for multi-level benefit structures the legacy system couldn't process",
+      "End-to-end benefit mapping automated, cutting manual configuration effort",
+    ],
+    pmSkills:["System/architecture redesign","Complex business-logic mapping","Domain PM (health insurance)"],
+    metrics:[{val:"78%",label:"Fewer mapping penalties"},{val:"E2E",label:"Mapping automated"}],
+  },
+  { id:"process-reengineering-bpr", category:"transformation", catLabel:"Process Transformation", tag:"09",
+    title:"Business Process Re-Engineering Across 11+ Workflows",
+    org:"Paramount Health Services & Insurance TPA · 2023–2024",
+    problem:"11+ business workflows had accumulated inefficiency and manual error over time, with no structured program to diagnose root causes or re-engineer them against measurable outcomes.",
+    approach:[
+      "Conducted user research and stakeholder interviews across 11+ business workflows to isolate root-cause bottlenecks",
+      "Delivered 18+ technology-enabled initiatives with Product and Engineering to redesign the highest-impact workflows",
+      "Tracked internal user satisfaction and turnaround time before and after each rollout",
+    ],
+    impact:[
+      "Average 21% improvement in process efficiency across workflows touched",
+      "78% reduction in manual processing errors",
+      "Internal user satisfaction up from 60% to 89%, with 30% reduction in turnaround time",
+    ],
+    pmSkills:["Process re-engineering","Root-cause analysis","Stakeholder interviews","Cross-functional delivery"],
+    metrics:[{val:"21%",label:"Efficiency gain"},{val:"78%",label:"Fewer errors"}],
   },
 ];
 
@@ -264,18 +284,19 @@ const SAVINGS_TRAJECTORY = [
    alongside the chart, which IS the cumulative number — the chart itself
    is deliberately per-role, not running-total.
 
-   keyProjects is read directly off CASE_STUDIES (the "Eight initiatives"
+   keyProjects is read directly off CASE_STUDIES (the "Nine initiatives"
    in the Work section) by each entry's own `org` year-tag, not invented:
-   2023–2024 → inhouse-ticketing-ops (1); 2024–2026 → ticketing-platform (1);
-   2026 → ai-pm-platform, benefit-module-revamp, onboarding-transformation,
-   support-automation, recovery-audit, vendor-governance (6). NexGen
-   (2022–23) predates the case-study set, so it's 0. 1+1+6 = 8, matching
-   the Work section's own "Eight initiatives" count exactly. */
+   2023–2024 → process-reengineering-bpr (1); 2024–2026 → ticketing-platform,
+   benefit-module-revamp (2); 2026 → ai-pm-platform, claims-chatbot,
+   onboarding-transformation, support-automation, recovery-audit,
+   vendor-governance (6). NexGen (2022–23) predates the case-study set, so
+   it's 0. 1+2+6 = 9, matching the Work section's own "Nine initiatives"
+   count exactly. */
 const YEARLY_GROWTH = [
   { year: "2022–23", role: "Project Co-Ordinator",  annualL: 0,   keyProjects: 0, note: "Project Co-Ordinator, NexGen — 12 projects @ 96% efficiency" },
-  { year: "2023–24", role: "Sr. Executive, BPR",    annualL: 0,   keyProjects: 1, note: "Sr. Executive BPR, Paramount — 11+ processes redesigned, 21% avg. gain" },
-  { year: "2024–26", role: "Asst. Manager, BPR",    annualL: 20,  keyProjects: 1, note: "Asst. Manager BPR, Paramount — AI/ML ticketing platform" },
-  { year: "2026–",   role: "APM, CTO Office",       annualL: 145, keyProjects: 6, note: "APM, Medi Assist CTO Office — AI PM platform, benefit engine revamp, onboarding transformation, support automation, recovery audit, vendor governance" },
+  { year: "2023–24", role: "Sr. Executive, BPR",    annualL: 0,   keyProjects: 1, note: "Sr. Executive BPR, Paramount — 11+ workflows re-engineered, 78% fewer errors, satisfaction 60%→89%" },
+  { year: "2024–26", role: "Asst. Manager, BPR",    annualL: 20,  keyProjects: 2, note: "Asst. Manager BPR, Paramount — AI/ML ticketing platform, modular Benefits configuration module" },
+  { year: "2026–",   role: "APM, CTO Office",       annualL: 145, keyProjects: 6, note: "APM, Medi Assist CTO Office — AI PM platform, claims chatbot, onboarding transformation, support automation, recovery audit, vendor governance" },
 ];
 
 const WORK_FILTERS = [
