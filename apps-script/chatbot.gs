@@ -31,7 +31,11 @@
    edits to an existing deployment's URL.
    ============================================================ */
 
-const GEMINI_MODEL = "gemini-3.7-flash"; // gemini-2.0-flash was retired June 2026 -- keep this current
+const GEMINI_MODEL = "gemini-3.1-flash-lite"; // lighter tier: plenty for short grounded Q&A, and
+                                               // gemini-3.7-flash hit a real 503 "high demand" on
+                                               // testing (confirmed via DEBUG_MODE below, not a
+                                               // guess) -- a lighter/less-popular tier plus the
+                                               // retry logic below is the actual resilience fix
 const DEBUG_MODE = true; // TEMPORARY -- set to false once the live proxy is confirmed working
 const MAX_HISTORY_TURNS = 6;             // caps context sent per request (cost/latency)
 const MAX_MESSAGE_CHARS = 2000;
@@ -200,14 +204,24 @@ function doPost(e) {
     };
 
     const url = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent?key=" + apiKey;
-    const response = UrlFetchApp.fetch(url, {
+    const fetchOptions = {
       method: "post",
       contentType: "application/json",
       payload: JSON.stringify(payload),
       muteHttpExceptions: true,
-    });
+    };
 
-    const status = response.getResponseCode();
+    // A single bounded retry on 503 (model overloaded) -- Gemini's own
+    // error message for this literally says "usually temporary, try
+    // again later". One retry with a short pause keeps worst-case
+    // latency bounded rather than looping indefinitely.
+    let response = UrlFetchApp.fetch(url, fetchOptions);
+    let status = response.getResponseCode();
+    if (status === 503) {
+      Utilities.sleep(1200);
+      response = UrlFetchApp.fetch(url, fetchOptions);
+      status = response.getResponseCode();
+    }
     const data = JSON.parse(response.getContentText());
 
     if (status !== 200) {
