@@ -378,15 +378,16 @@ window.addEventListener("scroll", () => {
    All four pillars shown at once as a static list — no carousel,
    no timers, nothing to click through to see the full picture.
    ============================================================ */
-(function focusCard(){
-  const list = document.getElementById("coreFocusList");
-  if (!list) return;
-  list.innerHTML = CORE_FOCUS.map(item => `
-    <div class="hero-panel-item">
-      <div class="hero-panel-icon"><i data-lucide="${item.icon}" class="icon"></i></div>
+(function focusCards(){
+  const wrap = document.getElementById("orbitCards");
+  if (!wrap) return;
+  const positions = ["oc-tl", "oc-tr", "oc-bl", "oc-br"];
+  wrap.innerHTML = CORE_FOCUS.map((item, i) => `
+    <div class="glass tilt orbit-card ${positions[i]}" style="--glow-color: rgba(139,92,246,.22)">
+      <div class="orbit-card-icon"><i data-lucide="${item.icon}" class="icon"></i></div>
       <div>
-        <div class="hero-panel-title">${item.title}</div>
-        <div class="hero-panel-desc">${item.desc}</div>
+        <div class="orbit-card-title">${item.title}</div>
+        <div class="orbit-card-desc">${item.desc}</div>
       </div>
     </div>
   `).join("");
@@ -1027,70 +1028,113 @@ updateNavSpy();
 })();
 
 /* ============================================================
-   HERO ROBOT — the attached reference video, framed as a small
-   floating orb, with an eased 3D "lean" toward the cursor layered on
-   top of the clip's own baked-in motion (float, occasional turn-away,
-   blink, wave). The video supplies the actual gaze/expression; this
-   loop only supplies the container's tilt, so nothing here touches
-   or redraws the robot's pixels.
-
-   Loop design: the clip's first playthrough runs in full (settle →
-   turn away → return → blink → wave, ~10s) as a one-time greeting.
-   On 'ended' it seeks to a pose-matched seam (0.08s) and every cycle
-   after that is cut at 8.375s — verified against the source frames to
-   be the closest-matching pose to the loop-in point — so it repeats
-   only the calmer settle/turn/blink portion and never replays the
-   wave. Both timestamps are tied to this specific clip.
+   HERO ROBOT — 8 real photos of the attached robot (front through
+   ~88° profile) plus a back view, mirrored at render time for the
+   opposite side, so gaze-tracking swaps between actual photography
+   rather than a rebuilt 3D model or a scrubbed video. Only yaw (left/
+   right) exists as real frames; the vertical "look up/down" and the
+   "lean toward the cursor" are a continuous CSS transform on top of
+   whichever frame is showing — the two axes read as one gaze because
+   the eye/visor position barely shifts between adjacent yaw photos.
+   One rAF loop drives frame selection, pitch, parallax-lean, idle
+   floating, blink and (no pointer) an autonomous look-around; it
+   parks itself the same way interactiveBackground() above does.
    ============================================================ */
 (function heroRobot(){
   const hero = document.getElementById("hero");
-  const video = document.getElementById("robotVideo");
-  const tiltEl = document.getElementById("robotOrbTilt");
-  if (!hero || !video || !tiltEl) return;
+  const figure = document.getElementById("robotFigure");
+  const sprite = document.getElementById("robotSprite");
+  if (!hero || !figure || !sprite) return;
 
-  const LOOP_IN = 0.08, LOOP_OUT = 8.375;
-  let introDone = false;
-  video.addEventListener("timeupdate", () => {
-    if (introDone && video.currentTime >= LOOP_OUT) video.currentTime = LOOP_IN;
-  });
-  video.addEventListener("ended", () => {
-    introDone = true;
-    video.currentTime = LOOP_IN;
-    video.play().catch(() => {});
-  });
-  if (!prefersReducedMotion) video.play().catch(() => {});
+  const FRAMES = [0, 24, 40, 52, 64, 76, 88, 180]
+    .map(angle => ({ angle, src: `assets/robot-frames/robot-f${String(angle).padStart(2, "0")}.jpg` }));
+  FRAMES.forEach(f => { const img = new Image(); img.src = f.src; }); // warm cache, zero-lag swaps
 
-  if (prefersReducedMotion) return; // static poster only — no tilt, no autoplay above
+  if (prefersReducedMotion) return; // static front frame only, already the <img>'s default src
 
   const finePointer = () => window.matchMedia("(pointer:fine)").matches;
-  const EASE = 0.09;
-  let tx = 0, ty = 0, cx = 0, cy = 0, running = false;
+  const isTablet = () => window.innerWidth <= 1000 && window.innerWidth > 640;
+  const isNarrow = () => window.innerWidth <= 640;
 
   function amplitude() {
-    const w = window.innerWidth;
-    if (w <= 640) return { yaw: 9, pitch: 5, tx: 4, ty: 3 };
-    if (w <= 1000) return { yaw: 12, pitch: 7, tx: 6, ty: 4 };
-    return { yaw: 20, pitch: 12, tx: 10, ty: 6 };
+    if (isNarrow()) return { pitch: 8, tx: 5, ty: 4 };
+    if (isTablet()) return { pitch: 10, tx: 7, ty: 5 };
+    return { pitch: 14, tx: 11, ty: 7 };
   }
 
-  function frame() {
-    cx += (tx - cx) * EASE;
-    cy += (ty - cy) * EASE;
-    const amp = amplitude();
-    /* sign convention: cy follows the brief's Y axis (top=+1) — positive
-       rotateX tilts the top edge away from the viewer, i.e. "chin up"
-       when the cursor is above center, matching a look-upward read. */
-    tiltEl.style.setProperty("--robot-ry", (cx * amp.yaw).toFixed(2) + "deg");
-    tiltEl.style.setProperty("--robot-rx", (cy * amp.pitch).toFixed(2) + "deg");
-    tiltEl.style.setProperty("--robot-tx", (cx * amp.tx).toFixed(2) + "px");
-    tiltEl.style.setProperty("--robot-ty", (-cy * amp.ty).toFixed(2) + "px");
-    if (Math.abs(tx - cx) > 0.0006 || Math.abs(ty - cy) > 0.0006) {
-      requestAnimationFrame(frame);
-    } else {
-      running = false;
-    }
+  let tx = 0, ty = 0;          // pointer target, normalised -1..1 (hero-relative, top = +1)
+  let cx = 0, cy = 0;          // eased position (drives pitch + parallax lean)
+  let yawTarget = 0, yawCur = 0; // signed degrees, -180..180 (negative = mirrored/left)
+  let running = false;
+  let lastFrameSrc = FRAMES[0].src, lastMirror = false;
+  let idleSince = performance.now();
+  let idleWanderTarget = { x: 0, y: 0 };
+  let nextIdleWanderAt = 0;
+  let nextGlanceAt = performance.now() + 9000 + Math.random() * 7000;
+  let glanceUntil = 0;
+  let glanceSign = 1;
+
+  function pickFrame(deg) {
+    const mag = Math.abs(deg);
+    let best = FRAMES[0];
+    for (const f of FRAMES) if (Math.abs(f.angle - mag) < Math.abs(best.angle - mag)) best = f;
+    return { src: best.src, mirror: deg < 0 && best.angle !== 0 && best.angle !== 180 };
   }
-  function wake() { if (!running) { running = true; requestAnimationFrame(frame); } }
+
+  function frame(now) {
+    const hasPointer = finePointer() && !isNarrow();
+    const idleMs = now - idleSince;
+    const isIdle = !hasPointer || idleMs > 1400;
+
+    if (isIdle) {
+      // no mouse, or mouse present but idle: gentle autonomous look-around
+      if (now >= nextIdleWanderAt) {
+        idleWanderTarget = { x: (Math.random() * 2 - 1) * 0.6, y: (Math.random() * 2 - 1) * 0.5 };
+        nextIdleWanderAt = now + 2600 + Math.random() * 3200;
+      }
+      tx = idleWanderTarget.x; ty = idleWanderTarget.y;
+
+      // occasional autonomous "glance away" toward the back view
+      if (now >= nextGlanceAt && glanceUntil === 0) {
+        glanceSign = Math.random() < 0.5 ? -1 : 1;
+        glanceUntil = now + 1100 + Math.random() * 500;
+      }
+    }
+
+    if (glanceUntil) {
+      yawTarget = glanceSign * 165;
+      if (now >= glanceUntil) { glanceUntil = 0; nextGlanceAt = now + 14000 + Math.random() * 10000; }
+    } else {
+      yawTarget = tx * 88;
+    }
+
+    const amp = amplitude();
+    cx += (tx - cx) * 0.08;
+    cy += (ty - cy) * 0.08;
+    yawCur += (yawTarget - yawCur) * 0.07;
+
+    const floatPx = Math.sin(now / 1800) * 9;
+    figure.style.setProperty("--robot-float", floatPx.toFixed(2) + "px");
+    figure.style.setProperty("--robot-rx", (cy * amp.pitch).toFixed(2) + "deg");
+    figure.style.setProperty("--robot-tx", (cx * amp.tx).toFixed(2) + "px");
+    figure.style.setProperty("--robot-ty", (-cy * amp.ty).toFixed(2) + "px");
+
+    const picked = pickFrame(yawCur);
+    if (picked.src !== lastFrameSrc) { sprite.src = picked.src; lastFrameSrc = picked.src; }
+    if (picked.mirror !== lastMirror) { sprite.classList.toggle("is-mirrored", picked.mirror); lastMirror = picked.mirror; }
+
+    if (visible) requestAnimationFrame(frame); else running = false; // pause off-screen
+  }
+  function wake() { if (!running && visible) { running = true; requestAnimationFrame(frame); } }
+
+  // the loop never settles on its own (floating + idle wander are continuous),
+  // so pause it entirely while the hero is scrolled out of view instead
+  let visible = true;
+  new IntersectionObserver(entries => {
+    visible = entries[0].isIntersecting;
+    if (visible) wake();
+  }, { threshold: 0 }).observe(hero);
+  wake();
 
   hero.addEventListener("pointermove", e => {
     if (e.pointerType === "touch" || !finePointer()) return;
@@ -1099,9 +1143,20 @@ updateNavSpy();
     const fy = (e.clientY - rect.top) / rect.height;
     tx = Math.max(-1, Math.min(1, fx * 2 - 1));
     ty = Math.max(-1, Math.min(1, (1 - fy) * 2 - 1)); // top = +1, bottom = -1
-    wake();
+    idleSince = performance.now();
   }, { passive: true });
 
-  hero.addEventListener("pointerleave", () => { tx = 0; ty = 0; wake(); }, { passive: true });
+  hero.addEventListener("pointerleave", () => { tx = 0; ty = 0; idleSince = 0; }, { passive: true });
+
+  // natural, irregular blink — dims the LED-eye glow briefly rather than
+  // drawing a human eyelid, so the robot's visual identity never changes
+  (function blinkLoop(){
+    const delay = 2200 + Math.random() * 2600;
+    setTimeout(() => {
+      sprite.classList.add("is-blinking");
+      setTimeout(() => sprite.classList.remove("is-blinking"), 110);
+      blinkLoop();
+    }, delay);
+  })();
 })();
 
