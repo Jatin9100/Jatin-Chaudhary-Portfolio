@@ -740,6 +740,15 @@ body.magic-cursor-active, body.magic-cursor-active *{ cursor:none !important; }
   align-self:flex-end; background:var(--grad); color:#fff; border-bottom-right-radius:5px;
 }
 .chatbot-msg.error{ color:#F0736C; background:rgba(240,115,108,.1); border:1px solid rgba(240,115,108,.3); }
+/* structure for rendered bot-reply markdown (see renderMarkdownLite in
+   script.js) -- paragraphs/lists need their own spacing since this is
+   real block-level HTML now, not one plain text blob */
+.chatbot-msg.bot p{ margin:0; }
+.chatbot-msg.bot p + p{ margin-top:8px; }
+.chatbot-msg.bot ul, .chatbot-msg.bot ol{ margin:8px 0 0; padding-left:20px; display:flex; flex-direction:column; gap:4px; }
+.chatbot-msg.bot ul:first-child, .chatbot-msg.bot ol:first-child{ margin-top:0; }
+.chatbot-msg.bot li{ padding-left:2px; }
+.chatbot-msg.bot strong{ font-weight:600; color:var(--ink); }
 .chatbot-typing{ align-self:flex-start; display:flex; gap:4px; padding:12px 14px; }
 .chatbot-typing span{ width:6px; height:6px; border-radius:50%; background:var(--dimmer); animation:chatbotTypingDot 1.1s ease-in-out infinite; }
 .chatbot-typing span:nth-child(2){ animation-delay:.15s; }

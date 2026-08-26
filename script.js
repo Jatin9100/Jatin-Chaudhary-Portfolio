@@ -1260,11 +1260,41 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
   /* ---- chat ---- */
   const messages = []; // {role:"user"|"bot", text}
 
+  const MD_ESCAPE = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  function escapeHtml(s) { return s.replace(/[&<>"']/g, c => MD_ESCAPE[c]); }
+
+  /* Gemini replies come back as markdown (bold, bullet/numbered lists,
+     paragraphs) — plain textContent was dumping the raw ** and * / 1.
+     characters as visible clutter and collapsing all line breaks, which
+     is exactly the "unstructured" look reported. This renders that
+     small markdown subset as real HTML instead. Escapes everything
+     FIRST, so only tags this function itself adds ever reach the DOM —
+     model output is treated as untrusted text, never as raw HTML. */
+  function renderMarkdownLite(text) {
+    const escaped = escapeHtml(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    const blocks = escaped.split(/\n{2,}/);
+    return blocks.map(block => {
+      const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+      if (!lines.length) return "";
+      if (lines.every(l => /^[*-]\s+/.test(l))) {
+        return "<ul>" + lines.map(l => `<li>${l.replace(/^[*-]\s+/, "")}</li>`).join("") + "</ul>";
+      }
+      if (lines.every(l => /^\d+\.\s+/.test(l))) {
+        return "<ol>" + lines.map(l => `<li>${l.replace(/^\d+\.\s+/, "")}</li>`).join("") + "</ol>";
+      }
+      return `<p>${lines.join("<br>")}</p>`;
+    }).join("");
+  }
+
   function addMessage(role, text, isError) {
     messages.push({ role, text });
     const div = document.createElement("div");
     div.className = "chatbot-msg " + role + (isError ? " error" : "");
-    div.textContent = text;
+    if (role === "bot" && !isError) {
+      div.innerHTML = renderMarkdownLite(text); // safe: escaped above before any tag is added
+    } else {
+      div.textContent = text; // user's own input, and our own hardcoded error strings
+    }
     logEl.appendChild(div);
     logEl.scrollTop = logEl.scrollHeight;
   }
