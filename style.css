@@ -394,6 +394,63 @@ html[data-theme="light"] .theme-toggle .knob .icon.sun{ display:block; }
   .hs-float{ animation:none; }
 }
 
+/* -- hero robot: the actual reference-video character, framed as a small
+      floating glass "orb" (matching the site's existing glass-card
+      language) rather than shown as a bare rectangle — the clip's own
+      baked-in studio-blue backdrop reads as an intentional holographic
+      glow this way instead of clashing with the page background.
+      Cursor-tracking is a 3D lean applied to the whole orb (JS sets
+      --robot-rx/--robot-ry/--robot-tx/--robot-ty below); the video's own
+      footage supplies the actual gaze turn, blink and idle float, so the
+      two layers compose into one convincing "watching you" character. -- */
+.robot-orb{
+  position:absolute; z-index:3; pointer-events:none;
+  width:clamp(64px,7vw,92px); height:clamp(64px,7vw,92px);
+  right:6%; bottom:calc(100% + 22px);
+}
+/* more headroom above the card on taller viewports — let it read as a
+   proper companion rather than a tiny badge once there's room for it */
+@media (min-height:820px){
+  .robot-orb{ width:clamp(110px,10vw,150px); height:clamp(110px,10vw,150px); bottom:calc(100% + 30px); }
+}
+.robot-orb-float{ width:100%; height:100%; animation:robotOrbFloat 9s ease-in-out infinite; }
+@keyframes robotOrbFloat{ 0%,100%{ transform:translate3d(0,0,0); } 50%{ transform:translate3d(0,-9px,0); } }
+.robot-orb-tilt{
+  width:100%; height:100%; position:relative; transform-style:preserve-3d; will-change:transform;
+  transform:
+    perspective(900px)
+    rotateX(var(--robot-rx,0deg)) rotateY(var(--robot-ry,0deg))
+    translate3d(var(--robot-tx,0px), var(--robot-ty,0px), 0);
+}
+.robot-orb-ring{
+  position:absolute; inset:-14%; border-radius:50%; z-index:0;
+  background:radial-gradient(circle, rgba(34,211,238,.30), transparent 68%);
+  filter:blur(14px); opacity:.85;
+}
+.robot-orb-video{
+  position:relative; z-index:1; width:100%; height:100%; border-radius:50%;
+  object-fit:cover; display:block; background:#08090D;
+  border:1px solid var(--glass-border-strong);
+  box-shadow:
+    0 18px 40px -16px rgba(0,0,0,.55),
+    0 0 0 1px rgba(255,255,255,.06) inset,
+    0 0 30px -6px rgba(34,211,238,.45);
+}
+@media (max-width:1000px){
+  /* the paragraph text already runs right up to the card with no gap on
+     stacked mobile layouts, so there's no free space to float above it —
+     join the flex flow instead (hero-stage → column) and let the orb push
+     its own room above the card rather than overlapping the copy. */
+  .hero-stage{ flex-direction:column; gap:18px; }
+  .robot-orb{
+    position:static; right:auto; bottom:auto; transform:none;
+    width:clamp(84px,20vw,120px); height:clamp(84px,20vw,120px);
+  }
+}
+@media (prefers-reduced-motion: reduce){
+  .robot-orb-float{ animation:none; }
+}
+
 .hero-panel{ max-width:480px; margin-left:auto; width:100%; padding:clamp(24px,3.4vh,34px) 30px clamp(22px,3vh,30px); }
 .hero-panel-tag{ font-size:13px; color:var(--cyan); text-transform:uppercase; letter-spacing:0.14em; margin-bottom:clamp(20px,3vh,28px); font-family:'JetBrains Mono',monospace; }
 .hero-panel-list{ display:flex; flex-direction:column; gap:26px; }
