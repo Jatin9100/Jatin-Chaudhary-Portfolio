@@ -1270,19 +1270,39 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
      small markdown subset as real HTML instead. Escapes everything
      FIRST, so only tags this function itself adds ever reach the DOM —
      model output is treated as untrusted text, never as raw HTML. */
+  const BULLET_RE = /^[*-]\s+/;
+  const NUMBERED_RE = /^\d+\.\s+/;
+
+  /* Line-by-line within each block, not "is this whole block a list" —
+     a model reply that puts a bold header directly above its bullets
+     (single newline, no blank line) used to fail the old all-or-nothing
+     check and fall back to one <p> with the raw "* " markers visible
+     as plain text. Scanning runs of matching lines handles a header
+     followed by a list, two lists back to back, etc. within one block. */
   function renderMarkdownLite(text) {
     const escaped = escapeHtml(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     const blocks = escaped.split(/\n{2,}/);
     return blocks.map(block => {
       const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
       if (!lines.length) return "";
-      if (lines.every(l => /^[*-]\s+/.test(l))) {
-        return "<ul>" + lines.map(l => `<li>${l.replace(/^[*-]\s+/, "")}</li>`).join("") + "</ul>";
+      const html = [];
+      let i = 0;
+      while (i < lines.length) {
+        if (BULLET_RE.test(lines[i])) {
+          const items = [];
+          while (i < lines.length && BULLET_RE.test(lines[i])) { items.push(`<li>${lines[i].replace(BULLET_RE, "")}</li>`); i++; }
+          html.push(`<ul>${items.join("")}</ul>`);
+        } else if (NUMBERED_RE.test(lines[i])) {
+          const items = [];
+          while (i < lines.length && NUMBERED_RE.test(lines[i])) { items.push(`<li>${lines[i].replace(NUMBERED_RE, "")}</li>`); i++; }
+          html.push(`<ol>${items.join("")}</ol>`);
+        } else {
+          const para = [];
+          while (i < lines.length && !BULLET_RE.test(lines[i]) && !NUMBERED_RE.test(lines[i])) { para.push(lines[i]); i++; }
+          html.push(`<p>${para.join("<br>")}</p>`);
+        }
       }
-      if (lines.every(l => /^\d+\.\s+/.test(l))) {
-        return "<ol>" + lines.map(l => `<li>${l.replace(/^\d+\.\s+/, "")}</li>`).join("") + "</ol>";
-      }
-      return `<p>${lines.join("<br>")}</p>`;
+      return html.join("");
     }).join("");
   }
 
