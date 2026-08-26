@@ -378,16 +378,15 @@ window.addEventListener("scroll", () => {
    All four pillars shown at once as a static list — no carousel,
    no timers, nothing to click through to see the full picture.
    ============================================================ */
-(function focusCards(){
-  const wrap = document.getElementById("orbitCards");
-  if (!wrap) return;
-  const positions = ["oc-tl", "oc-tr", "oc-bl", "oc-br"];
-  wrap.innerHTML = CORE_FOCUS.map((item, i) => `
-    <div class="glass tilt orbit-card ${positions[i]}" style="--glow-color: rgba(139,92,246,.22)">
-      <div class="orbit-card-icon"><i data-lucide="${item.icon}" class="icon"></i></div>
+(function focusCard(){
+  const list = document.getElementById("coreFocusList");
+  if (!list) return;
+  list.innerHTML = CORE_FOCUS.map(item => `
+    <div class="hero-panel-item">
+      <div class="hero-panel-icon"><i data-lucide="${item.icon}" class="icon"></i></div>
       <div>
-        <div class="orbit-card-title">${item.title}</div>
-        <div class="orbit-card-desc">${item.desc}</div>
+        <div class="hero-panel-title">${item.title}</div>
+        <div class="hero-panel-desc">${item.desc}</div>
       </div>
     </div>
   `).join("");
@@ -583,90 +582,68 @@ function animateCount(el, stat) {
 }
 
 /* ============================================================
-   RENDER: Journey — an accessible vertical tablist (WAI-ARIA tabs
-   pattern: role="tab"/"tabpanel", aria-selected, roving tabindex,
-   ArrowUp/Down + Home/End) showing one role's full write-up at a
-   time, rather than four independently-expandable accordions. The
-   connecting line + dots are kept as the tab list's own chronology
-   cue; the fill now marks the SELECTED role's position on it
-   instead of scroll progress, since the section is no longer a
-   long scroll of stacked detail panels.
+   RENDER: Journey timeline
    ============================================================ */
-const journeyTabList = document.getElementById("journeyTabList");
-const journeyPanelWrap = document.getElementById("journeyPanelWrap");
-const journeyUid = "journey";
-let journeyActive = 0;
-
-function renderJourneyTab(entry, i) {
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "tl-tab";
-  btn.id = `${journeyUid}-tab-${i}`;
-  btn.setAttribute("role", "tab");
-  btn.setAttribute("aria-controls", `${journeyUid}-panel`);
-  btn.setAttribute("aria-selected", i === journeyActive ? "true" : "false");
-  btn.tabIndex = i === journeyActive ? 0 : -1;
-  btn.innerHTML = `
-    <span class="tl-dot mono">${entry.step}</span>
-    <span class="tl-tab-text">
-      <span class="tl-role">${entry.role}</span>
-      <span class="tl-org">${entry.org}</span>
-      <span class="tl-period">${entry.period}</span>
-    </span>
-  `;
-  btn.addEventListener("click", () => selectJourneyTab(i, false));
-  btn.addEventListener("keydown", e => onJourneyTabKeyDown(e, i));
-  return btn;
-}
-
-function renderJourneyPanel(entry) {
-  journeyPanelWrap.innerHTML = `
-    <div class="journey-panel" id="${journeyUid}-panel" role="tabpanel" aria-labelledby="${journeyUid}-tab-${journeyActive}" tabindex="0">
+const timelineContainer = document.getElementById("timelineContainer");
+TIMELINE.forEach((entry, i) => {
+  const item = document.createElement("div");
+  item.className = "tl-item reveal reveal-delay-" + Math.min(i, 3);
+  item.innerHTML = `
+    <div class="tl-dot mono">${entry.step}</div>
+    <div class="glass tilt tl-content" style="--glow-color: rgba(139,92,246,.22)">
+      <div class="tl-head">
+        <div>
+          <div class="tl-role">${entry.role}</div>
+          <div class="tl-org">${entry.org}</div>
+          <div class="tl-period">${entry.period}</div>
+        </div>
+        <span class="tl-toggle">View detailed impact <i data-lucide="chevron-down" class="icon chev"></i></span>
+      </div>
       <div class="tl-desc">${entry.summary}</div>
-      <div class="tl-detail-inner">
-        ${entry.detail.map(group => `
-          <div class="tl-detail-group">
-            <h5>${group.heading}</h5>
-            <ul>${group.items.map(li => `<li>${li}</li>`).join("")}</ul>
-          </div>
-        `).join("")}
+      <div class="tl-detail">
+        <div class="tl-detail-inner">
+          ${entry.detail.map(group => `
+            <div class="tl-detail-group">
+              <h5>${group.heading}</h5>
+              <ul>${group.items.map(li => `<li>${li}</li>`).join("")}</ul>
+            </div>
+          `).join("")}
+        </div>
       </div>
     </div>
   `;
-}
+  timelineContainer.appendChild(item);
 
-function updateJourneyFill() {
-  const fillEl = document.getElementById("tlFill");
-  if (!fillEl) return;
-  const pct = TIMELINE.length > 1 ? (journeyActive / (TIMELINE.length - 1)) * 100 : 0;
-  fillEl.style.height = pct + "%";
-}
-
-function selectJourneyTab(index, shouldFocus) {
-  journeyActive = Math.max(0, Math.min(TIMELINE.length - 1, index));
-  const tabs = journeyTabList.querySelectorAll(".tl-tab");
-  tabs.forEach((btn, i) => {
-    const selected = i === journeyActive;
-    btn.setAttribute("aria-selected", selected ? "true" : "false");
-    btn.tabIndex = selected ? 0 : -1;
+  const head = item.querySelector(".tl-head");
+  const detail = item.querySelector(".tl-detail");
+  head.addEventListener("click", () => {
+    const isOpen = item.classList.toggle("open");
+    detail.style.height = isOpen ? detail.scrollHeight + "px" : "0px";
+    item.querySelector(".tl-toggle").firstChild.textContent = isOpen ? "Hide detail " : "View detailed impact ";
   });
-  renderJourneyPanel(TIMELINE[journeyActive]);
-  updateJourneyFill();
-  if (shouldFocus) tabs[journeyActive]?.focus();
-}
+});
 
-function onJourneyTabKeyDown(e, index) {
-  if (e.key === "ArrowDown") { e.preventDefault(); selectJourneyTab((index + 1) % TIMELINE.length, true); }
-  else if (e.key === "ArrowUp") { e.preventDefault(); selectJourneyTab((index - 1 + TIMELINE.length) % TIMELINE.length, true); }
-  else if (e.key === "Home") { e.preventDefault(); selectJourneyTab(0, true); }
-  else if (e.key === "End") { e.preventDefault(); selectJourneyTab(TIMELINE.length - 1, true); }
-}
+/* Highlight whichever role card is currently crossing the "active" line
+   so the dot lights up and the line reads as a real progress marker. */
+const tlCurrentObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    entry.target.classList.toggle("is-current", entry.isIntersecting);
+  });
+}, { rootMargin: "-45% 0px -45% 0px", threshold: 0 });
+timelineContainer.querySelectorAll(".tl-item").forEach(el => tlCurrentObserver.observe(el));
 
-if (journeyTabList && journeyPanelWrap) {
-  TIMELINE.forEach((entry, i) => journeyTabList.appendChild(renderJourneyTab(entry, i)));
-  renderJourneyPanel(TIMELINE[journeyActive]);
-  updateJourneyFill();
+/* Scroll-driven fill of the connecting line, mirrors the original site's behavior */
+function updateTimelineFill() {
+  const timelineEl = document.getElementById("timelineContainer");
+  const fillEl = document.getElementById("tlFill");
+  if (!timelineEl) return;
+  const rect = timelineEl.getBoundingClientRect();
+  const vh = window.innerHeight;
+  const progressPx = Math.min(Math.max(vh * 0.55 - rect.top, 0), rect.height);
+  fillEl.style.height = `${(progressPx / rect.height) * 100}%`;
 }
+onScrollBatched(updateTimelineFill);
+window.addEventListener("resize", updateTimelineFill);
 
 /* ============================================================
    RENDER: Work / case studies + filter + modal
@@ -1047,138 +1024,5 @@ updateNavSpy();
     ty = (e.clientY / window.innerHeight) * 2 - 1;
     if (!running) { running = true; requestAnimationFrame(frame); }
   }, { passive: true });
-})();
-
-/* ============================================================
-   HERO ROBOT — 8 real photos of the attached robot (front through
-   ~88° profile) plus a back view, mirrored at render time for the
-   opposite side, so gaze-tracking swaps between actual photography
-   rather than a rebuilt 3D model or a scrubbed video. Only yaw (left/
-   right) exists as real frames; the vertical "look up/down" and the
-   "lean toward the cursor" are a continuous CSS transform on top of
-   whichever frame is showing — the two axes read as one gaze because
-   the eye/visor position barely shifts between adjacent yaw photos.
-   One rAF loop drives frame selection, pitch, parallax-lean, idle
-   floating, blink and (no pointer) an autonomous look-around; it
-   parks itself the same way interactiveBackground() above does.
-   ============================================================ */
-(function heroRobot(){
-  const hero = document.getElementById("hero");
-  const figure = document.getElementById("robotFigure");
-  const sprite = document.getElementById("robotSprite");
-  if (!hero || !figure || !sprite) return;
-
-  const FRAMES = [0, 24, 40, 52, 64, 76, 88, 180]
-    .map(angle => ({ angle, src: `assets/robot-frames/robot-f${String(angle).padStart(2, "0")}.jpg` }));
-  FRAMES.forEach(f => { const img = new Image(); img.src = f.src; }); // warm cache, zero-lag swaps
-
-  if (prefersReducedMotion) return; // static front frame only, already the <img>'s default src
-
-  const finePointer = () => window.matchMedia("(pointer:fine)").matches;
-  const isTablet = () => window.innerWidth <= 1000 && window.innerWidth > 640;
-  const isNarrow = () => window.innerWidth <= 640;
-
-  function amplitude() {
-    if (isNarrow()) return { pitch: 8, tx: 5, ty: 4 };
-    if (isTablet()) return { pitch: 10, tx: 7, ty: 5 };
-    return { pitch: 14, tx: 11, ty: 7 };
-  }
-
-  let tx = 0, ty = 0;          // pointer target, normalised -1..1 (hero-relative, top = +1)
-  let cx = 0, cy = 0;          // eased position (drives pitch + parallax lean)
-  let yawTarget = 0, yawCur = 0; // signed degrees, -180..180 (negative = mirrored/left)
-  let running = false;
-  let lastFrameSrc = FRAMES[0].src, lastMirror = false;
-  let idleSince = performance.now();
-  let idleWanderTarget = { x: 0, y: 0 };
-  let nextIdleWanderAt = 0;
-  let nextGlanceAt = performance.now() + 9000 + Math.random() * 7000;
-  let glanceUntil = 0;
-  let glanceSign = 1;
-
-  function pickFrame(deg) {
-    const mag = Math.abs(deg);
-    let best = FRAMES[0];
-    for (const f of FRAMES) if (Math.abs(f.angle - mag) < Math.abs(best.angle - mag)) best = f;
-    return { src: best.src, mirror: deg < 0 && best.angle !== 0 && best.angle !== 180 };
-  }
-
-  function frame(now) {
-    const hasPointer = finePointer() && !isNarrow();
-    const idleMs = now - idleSince;
-    const isIdle = !hasPointer || idleMs > 1400;
-
-    if (isIdle) {
-      // no mouse, or mouse present but idle: gentle autonomous look-around
-      if (now >= nextIdleWanderAt) {
-        idleWanderTarget = { x: (Math.random() * 2 - 1) * 0.6, y: (Math.random() * 2 - 1) * 0.5 };
-        nextIdleWanderAt = now + 2600 + Math.random() * 3200;
-      }
-      tx = idleWanderTarget.x; ty = idleWanderTarget.y;
-
-      // occasional autonomous "glance away" toward the back view
-      if (now >= nextGlanceAt && glanceUntil === 0) {
-        glanceSign = Math.random() < 0.5 ? -1 : 1;
-        glanceUntil = now + 1100 + Math.random() * 500;
-      }
-    }
-
-    if (glanceUntil) {
-      yawTarget = glanceSign * 165;
-      if (now >= glanceUntil) { glanceUntil = 0; nextGlanceAt = now + 14000 + Math.random() * 10000; }
-    } else {
-      yawTarget = tx * 88;
-    }
-
-    const amp = amplitude();
-    cx += (tx - cx) * 0.08;
-    cy += (ty - cy) * 0.08;
-    yawCur += (yawTarget - yawCur) * 0.07;
-
-    const floatPx = Math.sin(now / 1800) * 9;
-    figure.style.setProperty("--robot-float", floatPx.toFixed(2) + "px");
-    figure.style.setProperty("--robot-rx", (cy * amp.pitch).toFixed(2) + "deg");
-    figure.style.setProperty("--robot-tx", (cx * amp.tx).toFixed(2) + "px");
-    figure.style.setProperty("--robot-ty", (-cy * amp.ty).toFixed(2) + "px");
-
-    const picked = pickFrame(yawCur);
-    if (picked.src !== lastFrameSrc) { sprite.src = picked.src; lastFrameSrc = picked.src; }
-    if (picked.mirror !== lastMirror) { sprite.classList.toggle("is-mirrored", picked.mirror); lastMirror = picked.mirror; }
-
-    if (visible) requestAnimationFrame(frame); else running = false; // pause off-screen
-  }
-  function wake() { if (!running && visible) { running = true; requestAnimationFrame(frame); } }
-
-  // the loop never settles on its own (floating + idle wander are continuous),
-  // so pause it entirely while the hero is scrolled out of view instead
-  let visible = true;
-  new IntersectionObserver(entries => {
-    visible = entries[0].isIntersecting;
-    if (visible) wake();
-  }, { threshold: 0 }).observe(hero);
-  wake();
-
-  hero.addEventListener("pointermove", e => {
-    if (e.pointerType === "touch" || !finePointer()) return;
-    const rect = hero.getBoundingClientRect();
-    const fx = (e.clientX - rect.left) / rect.width;
-    const fy = (e.clientY - rect.top) / rect.height;
-    tx = Math.max(-1, Math.min(1, fx * 2 - 1));
-    ty = Math.max(-1, Math.min(1, (1 - fy) * 2 - 1)); // top = +1, bottom = -1
-    idleSince = performance.now();
-  }, { passive: true });
-
-  hero.addEventListener("pointerleave", () => { tx = 0; ty = 0; idleSince = 0; }, { passive: true });
-
-  // natural, irregular blink — dims the LED-eye glow briefly rather than
-  // drawing a human eyelid, so the robot's visual identity never changes
-  (function blinkLoop(){
-    const delay = 2200 + Math.random() * 2600;
-    setTimeout(() => {
-      sprite.classList.add("is-blinking");
-      setTimeout(() => sprite.classList.remove("is-blinking"), 110);
-      blinkLoop();
-    }, delay);
-  })();
 })();
 

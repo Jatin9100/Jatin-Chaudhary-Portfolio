@@ -50,7 +50,7 @@
   </div>
 </nav>
 
-<section class="hero" id="hero">
+<section class="hero">
   <div class="blob-field" aria-hidden="true">
     <div class="blob-depth ob-1" data-depth="30"><div class="orb-drift"><span class="orb-halo"></span><span class="orb"></span></div></div>
     <div class="blob-depth ob-2" data-depth="46"><div class="orb-drift"><span class="orb-halo"></span><span class="orb"></span></div></div>
@@ -67,13 +67,12 @@
     </div>
     <div class="hero-stage reveal in reveal-delay-2">
       <div class="hs-scene" id="hsScene">
-        <div class="robot-cluster" id="robotCluster">
-          <div class="orbit-cards" id="orbitCards"></div>
-          <div class="robot-figure" id="robotFigure" aria-hidden="true">
-            <div class="robot-glow"></div>
-            <img class="robot-sprite" id="robotSprite" src="assets/robot-frames/robot-f00.jpg" alt="" width="560" height="560" fetchpriority="high">
+        <div class="hs-card"><div class="hs-float">
+          <div class="glass tilt hero-panel" id="focusConsole" style="--glow-color: rgba(139,92,246,.22)">
+            <div class="hero-panel-tag mono">Core Focus</div>
+            <div class="hero-panel-list" id="coreFocusList"></div>
           </div>
-        </div>
+        </div></div>
       </div>
     </div>
   </div>
@@ -108,13 +107,10 @@
 <section id="journey">
   <div class="section-tag reveal">The Path</div>
   <h2 class="section-title reveal reveal-delay-1">From project floor to the CTO&rsquo;s table.</h2>
-  <p class="section-desc reveal reveal-delay-2">Four roles, one operating model — problem discovery, requirement definition, solution design, and delivery ownership applied at increasing scope and stakes. Select any role for the specific initiatives owned, decisions made, and outcomes delivered.</p>
-  <div class="journey-tabs reveal reveal-delay-2">
-    <div class="journey-tablist" role="tablist" aria-label="Career roles, most recent first" aria-orientation="vertical" id="journeyTabList">
-      <div class="timeline-line"></div>
-      <div class="timeline-line-fill" id="tlFill"></div>
-    </div>
-    <div class="glass tilt journey-panel-wrap" id="journeyPanelWrap" style="--glow-color: rgba(139,92,246,.22)"></div>
+  <p class="section-desc reveal reveal-delay-2">Four roles, one operating model — problem discovery, requirement definition, solution design, and delivery ownership applied at increasing scope and stakes. Expand any role for the specific initiatives owned, decisions made, and outcomes delivered.</p>
+  <div class="timeline" id="timelineContainer">
+    <div class="timeline-line"></div>
+    <div class="timeline-line-fill" id="tlFill"></div>
   </div>
 </section>
 
