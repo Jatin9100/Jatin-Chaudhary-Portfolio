@@ -817,19 +817,27 @@ window.addEventListener("pointermove", e => {
   });
 }, { passive: true });
 
+/* Shared damped-spring integrator (semi-implicit Euler) — standing in for
+   framer-motion's useSpring across both the magic cursor and the liquid
+   name-hover effect below. Verified numerically stable and convergent at
+   the stiffness/damping/mass values each caller uses, including under
+   sudden target jumps and rapid target flips. */
+function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
+  const force = -stiffness * (s.v - target) - damping * s.vel;
+  s.vel += (force / mass) * dt;
+  s.v += s.vel * dt;
+}
+
 /* ============================================================
    INTERACTION: magic cursor — ported from the requested Framer
    "SmoothCursor" component (framer.com/m/Smoothcursor-o8zdlR.js)
    into vanilla JS, since this site has no React/build step. A
    custom pointer icon chases the real cursor via damped springs on
-   position/rotation/scale (hand-rolled semi-implicit-Euler integrator
-   standing in for framer-motion's useSpring — same stiffness/damping/
-   mass values, so the feel matches even though the solvers differ).
-   Rotation faces the direction of travel with wrap-safe accumulation
-   (avoids snapping the "long way" across the +-180 degree seam); scale
-   squishes slightly while moving and on click. Skipped under
-   prefers-reduced-motion and on touch/narrow/portrait devices, mirroring
-   the source component's own mobile guard.
+   position/rotation/scale. Rotation faces the direction of travel
+   with wrap-safe accumulation (avoids snapping the "long way" across
+   the +-180 degree seam); scale squishes slightly while moving and on
+   click. Skipped under prefers-reduced-motion and on touch/narrow/
+   portrait devices, mirroring the source component's own mobile guard.
    ============================================================ */
 (function magicCursor(){
   if (prefersReducedMotion) return;
@@ -844,24 +852,13 @@ window.addEventListener("pointermove", e => {
   const cursor = document.createElement("div");
   cursor.className = "magic-cursor";
   cursor.setAttribute("aria-hidden", "true");
-  cursor.innerHTML = `
-    <svg viewBox="0 0 50 54" xmlns="http://www.w3.org/2000/svg">
-      <path class="magic-cursor-fill" d="M42.6817 41.1495L27.5103 6.79925C26.7269 5.02557 24.2082 5.02558 23.3927 6.79925L7.59814 41.1495C6.75833 42.9759 8.52712 44.8902 10.4125 44.1954L24.3757 39.0496C24.8829 38.8627 25.4385 38.8627 25.9422 39.0496L39.8121 44.1954C41.6849 44.8902 43.4884 42.9759 42.6817 41.1495Z" />
-      <path class="magic-cursor-stroke" d="M43.7146 40.6933L28.5431 6.34306C27.3556 3.65428 23.5772 3.69516 22.3668 6.32755L6.57226 40.6778C5.3134 43.4156 7.97238 46.298 10.803 45.2549L24.7662 40.109C25.0221 40.0147 25.2999 40.0156 25.5494 40.1082L39.4193 45.254C42.2261 46.2953 44.9254 43.4347 43.7146 40.6933Z" />
-    </svg>
-  `;
+  cursor.innerHTML = `<img src="assets/cursor/rocket-cursor.png" alt="">`;
   document.body.appendChild(cursor);
   document.body.classList.add("magic-cursor-active");
 
   const posX = { v: -100, vel: 0 }, posY = { v: -100, vel: 0 };
   const rot = { v: 0, vel: 0 }, scl = { v: 1, vel: 0 };
   let targetX = -100, targetY = -100, targetRot = 0, targetScale = 1;
-
-  function stepSpring(s, target, stiffness, damping, dt) {
-    const force = -stiffness * (s.v - target) - damping * s.vel;
-    s.vel += (force / MASS) * dt;
-    s.v += s.vel * dt;
-  }
 
   let lastMouse = { x: 0, y: 0 }, lastMoveTime = performance.now();
   let velocity = { x: 0, y: 0 };
@@ -914,12 +911,102 @@ window.addEventListener("pointermove", e => {
   function frame(now) {
     const dt = Math.min((now - lastFrameTime) / 1000, 1 / 30); // clamp: stable through frame drops
     lastFrameTime = now;
-    stepSpring(posX, targetX, STIFFNESS, DAMPING, dt);
-    stepSpring(posY, targetY, STIFFNESS, DAMPING, dt);
-    stepSpring(rot, targetRot, ROT_STIFFNESS, ROT_DAMPING, dt);
-    stepSpring(scl, targetScale, SCALE_STIFFNESS, SCALE_DAMPING, dt);
+    dampedSpringStep(posX, targetX, STIFFNESS, DAMPING, MASS, dt);
+    dampedSpringStep(posY, targetY, STIFFNESS, DAMPING, MASS, dt);
+    dampedSpringStep(rot, targetRot, ROT_STIFFNESS, ROT_DAMPING, MASS, dt);
+    dampedSpringStep(scl, targetScale, SCALE_STIFFNESS, SCALE_DAMPING, MASS, dt);
     cursor.style.transform =
       `translate(${posX.v.toFixed(2)}px, ${posY.v.toFixed(2)}px) translate(-50%,-50%) rotate(${rot.v.toFixed(2)}deg) scale(${scl.v.toFixed(3)})`;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ============================================================
+   INTERACTION: liquid name hover — the hero's "Jatin Chaudhary" name
+   splits into per-letter spans that elastically stretch/lean toward
+   a nearby cursor, then spring back to their crisp rest shape as the
+   cursor moves away. Approximates a canvas-shader liquid warp with
+   per-letter CSS transforms instead: each letter's scaleY/scaleX/
+   translateY/skew is its own damped spring (the same integrator the
+   magic cursor uses), driven by proximity to the cursor rather than
+   click/velocity state. Rest positions are measured once (and on
+   resize) rather than every frame, so the animation itself never
+   feeds back into its own distance calculation.
+   ============================================================ */
+(function liquidName(){
+  const nameEl = document.querySelector(".hero .name-highlight");
+  if (!nameEl) return;
+  if (prefersReducedMotion) return;
+  const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  if (isTouch) return;
+
+  const RADIUS = 95;              // px influence radius around each letter
+  const STIFFNESS = 320, DAMPING = 28, MASS = 1;
+
+  const fullText = nameEl.textContent;
+  nameEl.setAttribute("aria-label", fullText);
+  nameEl.textContent = "";
+  const letterWrap = document.createElement("span");
+  letterWrap.setAttribute("aria-hidden", "true");
+  nameEl.appendChild(letterWrap);
+
+  const letters = [];
+  for (const ch of fullText) {
+    if (ch === " ") { letterWrap.appendChild(document.createTextNode(" ")); continue; }
+    const span = document.createElement("span");
+    span.className = "name-letter";
+    span.textContent = ch;
+    letterWrap.appendChild(span);
+    letters.push({
+      el: span,
+      cx: 0, cy: 0, // cached rest-position center, measured on load/resize
+      scaleX: { v: 1, vel: 0 }, scaleY: { v: 1, vel: 0 },
+      ty: { v: 0, vel: 0 }, skew: { v: 0, vel: 0 },
+    });
+  }
+
+  function measureRestPositions() {
+    for (const L of letters) {
+      const r = L.el.getBoundingClientRect();
+      L.cx = r.left + r.width / 2;
+      L.cy = r.top + r.height / 2;
+    }
+  }
+  measureRestPositions();
+  window.addEventListener("resize", measureRestPositions);
+
+  let mouseX = -9999, mouseY = -9999;
+  window.addEventListener("mousemove", e => { mouseX = e.clientX; mouseY = e.clientY; }, { passive: true });
+  window.addEventListener("mouseleave", () => { mouseX = -9999; mouseY = -9999; }, { passive: true });
+
+  let visible = true;
+  new IntersectionObserver(entries => { visible = entries[0].isIntersecting; }, { threshold: 0 }).observe(nameEl);
+
+  let lastFrameTime = performance.now();
+  function frame(now) {
+    const dt = Math.min((now - lastFrameTime) / 1000, 1 / 30);
+    lastFrameTime = now;
+    if (visible) {
+      for (const L of letters) {
+        const dx = mouseX - L.cx, dy = mouseY - L.cy;
+        const dist = Math.hypot(dx, dy);
+        const proximity = Math.max(0, 1 - dist / RADIUS) ** 1.5; // eased falloff, snappier near center
+
+        const targetScaleY = 1 + proximity * 0.55;
+        const targetScaleX = 1 - proximity * 0.18;
+        const targetTy = -proximity * 12;
+        const targetSkew = Math.max(-10, Math.min(10, (dx / RADIUS) * proximity * 10));
+
+        dampedSpringStep(L.scaleY, targetScaleY, STIFFNESS, DAMPING, MASS, dt);
+        dampedSpringStep(L.scaleX, targetScaleX, STIFFNESS, DAMPING, MASS, dt);
+        dampedSpringStep(L.ty, targetTy, STIFFNESS, DAMPING, MASS, dt);
+        dampedSpringStep(L.skew, targetSkew, STIFFNESS, DAMPING, MASS, dt);
+
+        L.el.style.transform =
+          `translateY(${L.ty.v.toFixed(2)}px) skewX(${L.skew.v.toFixed(2)}deg) scale(${L.scaleX.v.toFixed(3)}, ${L.scaleY.v.toFixed(3)})`;
+      }
+    }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

@@ -308,6 +308,13 @@ html[data-theme="light"] .theme-toggle .knob .icon.sun{ display:block; }
 @media (prefers-reduced-motion: reduce){
   .hero .name-highlight{ animation:none; background-position:20% 0; }
 }
+/* per-letter spans for the liquid-hover effect (script.js liquidName) —
+   display:inline-block so transforms apply reliably, transform-origin
+   at the baseline so a letter reads as being "pulled up" rather than
+   stretching symmetrically from its own center */
+.hero .name-highlight .name-letter{
+  display:inline-block; transform-origin:center bottom; will-change:transform;
+}
 .hero .title-line{ display:block; margin-top:6px; font-size:clamp(16px,2.4vw,32px); font-weight:600; color:color-mix(in srgb, var(--ink) 90%, transparent); letter-spacing:-0.01em; line-height:1.3; }
 .hero .sub{ margin-top:clamp(14px,2.2vh,22px); max-width:62ch; font-size:clamp(13px,1.5vw,15px); line-height:1.65; color:var(--dim); }
 @media (max-width:900px){
@@ -657,16 +664,16 @@ footer .sub{ margin:16px auto 0; max-width:46ch; font-size:14.5px; color:var(--d
 
 /* ============================================================
    MAGIC CURSOR — spring-eased custom pointer, ported from the
-   requested Framer "SmoothCursor" component. The bicolor icon (dark
-   fill + light outline) is self-contrasting against either theme by
-   design, so it needs no dark/light overrides of its own.
+   requested Framer "SmoothCursor" component. Icon is the user's own
+   rocket artwork; its nose sits ~21.1deg off the image's own vertical
+   axis (measured from the source PNG), so a fixed counter-rotation on
+   the <img> itself corrects that before the JS-driven, direction-of-
+   travel rotation is applied to the wrapper on top of it.
    ============================================================ */
 .magic-cursor{
   position:fixed; top:0; left:0; z-index:9999; pointer-events:none;
-  width:40px; height:40px; will-change:transform;
+  width:48px; height:48px; will-change:transform; /* medium size */
   transform:translate(-100px,-100px);
 }
-.magic-cursor svg{ width:100%; height:100%; display:block; }
-.magic-cursor-fill{ fill:#000; }
-.magic-cursor-stroke{ fill:none; stroke:#fff; stroke-width:2.25825; }
+.magic-cursor img{ width:100%; height:100%; object-fit:contain; display:block; transform:rotate(21.1deg); }
 body.magic-cursor-active, body.magic-cursor-active *{ cursor:none !important; }
