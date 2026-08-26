@@ -32,6 +32,7 @@
    ============================================================ */
 
 const GEMINI_MODEL = "gemini-3.7-flash"; // gemini-2.0-flash was retired June 2026 -- keep this current
+const DEBUG_MODE = true; // TEMPORARY -- set to false once the live proxy is confirmed working
 const MAX_HISTORY_TURNS = 6;             // caps context sent per request (cost/latency)
 const MAX_MESSAGE_CHARS = 2000;
 
@@ -211,7 +212,11 @@ function doPost(e) {
 
     if (status !== 200) {
       console.error("Gemini error " + status + ": " + response.getContentText());
-      return jsonResponse({ error: "The assistant is temporarily unavailable. Please try again shortly, or use the contact form." });
+      const msg = "The assistant is temporarily unavailable. Please try again shortly, or use the contact form.";
+      // TEMPORARY while debugging the deployed proxy — set DEBUG_MODE to
+      // false (top of file) once this is diagnosed, so upstream error
+      // detail never reaches real site visitors.
+      return jsonResponse(DEBUG_MODE ? { error: msg, debug: status + ": " + response.getContentText().slice(0, 800) } : { error: msg });
     }
 
     const candidate = data && data.candidates && data.candidates[0];
@@ -225,7 +230,8 @@ function doPost(e) {
     return jsonResponse({ reply: answer.trim() });
   } catch (err) {
     console.error(err);
-    return jsonResponse({ error: "Server error. Please try again shortly." });
+    const msg = "Server error. Please try again shortly.";
+    return jsonResponse(DEBUG_MODE ? { error: msg, debug: String(err && err.message || err) } : { error: msg });
   }
 }
 
