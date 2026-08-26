@@ -583,68 +583,90 @@ function animateCount(el, stat) {
 }
 
 /* ============================================================
-   RENDER: Journey timeline
+   RENDER: Journey — an accessible vertical tablist (WAI-ARIA tabs
+   pattern: role="tab"/"tabpanel", aria-selected, roving tabindex,
+   ArrowUp/Down + Home/End) showing one role's full write-up at a
+   time, rather than four independently-expandable accordions. The
+   connecting line + dots are kept as the tab list's own chronology
+   cue; the fill now marks the SELECTED role's position on it
+   instead of scroll progress, since the section is no longer a
+   long scroll of stacked detail panels.
    ============================================================ */
-const timelineContainer = document.getElementById("timelineContainer");
-TIMELINE.forEach((entry, i) => {
-  const item = document.createElement("div");
-  item.className = "tl-item reveal reveal-delay-" + Math.min(i, 3);
-  item.innerHTML = `
-    <div class="tl-dot mono">${entry.step}</div>
-    <div class="glass tilt tl-content" style="--glow-color: rgba(139,92,246,.22)">
-      <div class="tl-head">
-        <div>
-          <div class="tl-role">${entry.role}</div>
-          <div class="tl-org">${entry.org}</div>
-          <div class="tl-period">${entry.period}</div>
-        </div>
-        <span class="tl-toggle">View detailed impact <i data-lucide="chevron-down" class="icon chev"></i></span>
-      </div>
+const journeyTabList = document.getElementById("journeyTabList");
+const journeyPanelWrap = document.getElementById("journeyPanelWrap");
+const journeyUid = "journey";
+let journeyActive = 0;
+
+function renderJourneyTab(entry, i) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "tl-tab";
+  btn.id = `${journeyUid}-tab-${i}`;
+  btn.setAttribute("role", "tab");
+  btn.setAttribute("aria-controls", `${journeyUid}-panel`);
+  btn.setAttribute("aria-selected", i === journeyActive ? "true" : "false");
+  btn.tabIndex = i === journeyActive ? 0 : -1;
+  btn.innerHTML = `
+    <span class="tl-dot mono">${entry.step}</span>
+    <span class="tl-tab-text">
+      <span class="tl-role">${entry.role}</span>
+      <span class="tl-org">${entry.org}</span>
+      <span class="tl-period">${entry.period}</span>
+    </span>
+  `;
+  btn.addEventListener("click", () => selectJourneyTab(i, false));
+  btn.addEventListener("keydown", e => onJourneyTabKeyDown(e, i));
+  return btn;
+}
+
+function renderJourneyPanel(entry) {
+  journeyPanelWrap.innerHTML = `
+    <div class="journey-panel" id="${journeyUid}-panel" role="tabpanel" aria-labelledby="${journeyUid}-tab-${journeyActive}" tabindex="0">
       <div class="tl-desc">${entry.summary}</div>
-      <div class="tl-detail">
-        <div class="tl-detail-inner">
-          ${entry.detail.map(group => `
-            <div class="tl-detail-group">
-              <h5>${group.heading}</h5>
-              <ul>${group.items.map(li => `<li>${li}</li>`).join("")}</ul>
-            </div>
-          `).join("")}
-        </div>
+      <div class="tl-detail-inner">
+        ${entry.detail.map(group => `
+          <div class="tl-detail-group">
+            <h5>${group.heading}</h5>
+            <ul>${group.items.map(li => `<li>${li}</li>`).join("")}</ul>
+          </div>
+        `).join("")}
       </div>
     </div>
   `;
-  timelineContainer.appendChild(item);
-
-  const head = item.querySelector(".tl-head");
-  const detail = item.querySelector(".tl-detail");
-  head.addEventListener("click", () => {
-    const isOpen = item.classList.toggle("open");
-    detail.style.height = isOpen ? detail.scrollHeight + "px" : "0px";
-    item.querySelector(".tl-toggle").firstChild.textContent = isOpen ? "Hide detail " : "View detailed impact ";
-  });
-});
-
-/* Highlight whichever role card is currently crossing the "active" line
-   so the dot lights up and the line reads as a real progress marker. */
-const tlCurrentObserver = new IntersectionObserver(entries => {
-  entries.forEach(entry => {
-    entry.target.classList.toggle("is-current", entry.isIntersecting);
-  });
-}, { rootMargin: "-45% 0px -45% 0px", threshold: 0 });
-timelineContainer.querySelectorAll(".tl-item").forEach(el => tlCurrentObserver.observe(el));
-
-/* Scroll-driven fill of the connecting line, mirrors the original site's behavior */
-function updateTimelineFill() {
-  const timelineEl = document.getElementById("timelineContainer");
-  const fillEl = document.getElementById("tlFill");
-  if (!timelineEl) return;
-  const rect = timelineEl.getBoundingClientRect();
-  const vh = window.innerHeight;
-  const progressPx = Math.min(Math.max(vh * 0.55 - rect.top, 0), rect.height);
-  fillEl.style.height = `${(progressPx / rect.height) * 100}%`;
 }
-onScrollBatched(updateTimelineFill);
-window.addEventListener("resize", updateTimelineFill);
+
+function updateJourneyFill() {
+  const fillEl = document.getElementById("tlFill");
+  if (!fillEl) return;
+  const pct = TIMELINE.length > 1 ? (journeyActive / (TIMELINE.length - 1)) * 100 : 0;
+  fillEl.style.height = pct + "%";
+}
+
+function selectJourneyTab(index, shouldFocus) {
+  journeyActive = Math.max(0, Math.min(TIMELINE.length - 1, index));
+  const tabs = journeyTabList.querySelectorAll(".tl-tab");
+  tabs.forEach((btn, i) => {
+    const selected = i === journeyActive;
+    btn.setAttribute("aria-selected", selected ? "true" : "false");
+    btn.tabIndex = selected ? 0 : -1;
+  });
+  renderJourneyPanel(TIMELINE[journeyActive]);
+  updateJourneyFill();
+  if (shouldFocus) tabs[journeyActive]?.focus();
+}
+
+function onJourneyTabKeyDown(e, index) {
+  if (e.key === "ArrowDown") { e.preventDefault(); selectJourneyTab((index + 1) % TIMELINE.length, true); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); selectJourneyTab((index - 1 + TIMELINE.length) % TIMELINE.length, true); }
+  else if (e.key === "Home") { e.preventDefault(); selectJourneyTab(0, true); }
+  else if (e.key === "End") { e.preventDefault(); selectJourneyTab(TIMELINE.length - 1, true); }
+}
+
+if (journeyTabList && journeyPanelWrap) {
+  TIMELINE.forEach((entry, i) => journeyTabList.appendChild(renderJourneyTab(entry, i)));
+  renderJourneyPanel(TIMELINE[journeyActive]);
+  updateJourneyFill();
+}
 
 /* ============================================================
    RENDER: Work / case studies + filter + modal

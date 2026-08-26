@@ -543,48 +543,63 @@ html[data-theme="light"] .theme-toggle .knob .icon.sun{ display:block; }
 .growth-legend-swatch{ width:10px; height:8px; border-radius:2px; background:var(--cyan); opacity:.5; flex-shrink:0; }
 
 /* ============================================================
-   JOURNEY TIMELINE
+   JOURNEY — accessible vertical tablist (one role's full write-up
+   shown at a time in a shared panel) + the connecting dot-line kept
+   as a chronology cue, now marking the SELECTED tab's position
+   rather than scroll progress.
    ============================================================ */
-.timeline{ margin-top:60px; position:relative; display:flex; flex-direction:column; gap:40px; }
+.journey-tabs{ margin-top:52px; display:grid; grid-template-columns:340px 1fr; gap:32px; align-items:start; }
+.journey-tablist{ position:relative; display:flex; flex-direction:column; gap:6px; }
 .timeline-line{ position:absolute; left:21px; top:6px; bottom:6px; width:1.5px; background:var(--glass-border); border-radius:1px; }
 .timeline-line-fill{
   position:absolute; left:21px; top:6px; width:1.5px; border-radius:1px;
   background:var(--grad-tri); background-size:100% 220%; height:0%;
-  transition:height .25s linear; box-shadow:0 0 10px -2px color-mix(in srgb, var(--violet) 60%, transparent);
+  transition:height .45s cubic-bezier(.16,1,.3,1); box-shadow:0 0 10px -2px color-mix(in srgb, var(--violet) 60%, transparent);
 }
 @keyframes tlFillDrift{ 0%{ background-position:0 0; } 100%{ background-position:0 100%; } }
 @media (prefers-reduced-motion: no-preference){ .timeline-line-fill{ animation:tlFillDrift 6s linear infinite; } }
-.tl-item{ position:relative; padding-left:74px; }
+
+.tl-tab{
+  position:relative; z-index:1; display:flex; align-items:flex-start; gap:16px;
+  width:100%; padding:10px 14px 10px 0; border-radius:14px; text-align:left;
+  transition:background-color .25s ease;
+}
+.tl-tab:hover{ background:var(--fill-subtle); }
+.tl-tab:focus-visible{ outline:2px solid var(--violet); outline-offset:2px; }
 .tl-dot{
-  position:absolute; left:0; top:0; width:44px; height:44px; border-radius:50%;
+  flex-shrink:0; width:44px; height:44px; border-radius:50%;
   display:flex; align-items:center; justify-content:center; font-size:13px;
   background:color-mix(in srgb, var(--page-bg) 78%, transparent); backdrop-filter:blur(6px);
   border:1.5px solid var(--glass-border-strong); color:var(--dim);
   transition:background-color .35s ease, border-color .35s ease, color .35s ease, box-shadow .35s ease, transform .35s ease;
 }
-.tl-item.is-current .tl-dot{
+.tl-tab[aria-selected="true"] .tl-dot{
   background:var(--violet); border-color:var(--violet); color:#fff;
   box-shadow:0 0 0 5px var(--violet-soft), 0 0 22px -2px rgba(139,92,246,.7);
   transform:scale(1.06);
 }
-.tl-content{ padding:26px 28px; transition:border-color .35s ease; }
-.tl-item.is-current .tl-content{ border-color:var(--glass-border-strong); }
-.tl-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; cursor:pointer; }
-.tl-role{ font-family:'Space Grotesk'; font-weight:600; font-size:16px; color:var(--ink); }
-.tl-org{ margin-top:4px; font-size:13px; color:var(--dim); }
-.tl-period{ margin-top:4px; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--dimmer); font-family:'JetBrains Mono'; }
-.tl-toggle{ display:flex; align-items:center; gap:6px; font-size:12px; text-transform:uppercase; letter-spacing:0.05em; color:var(--cyan); font-family:'JetBrains Mono'; flex-shrink:0; }
-.tl-toggle .chev{ transition:transform .25s ease; }
-.tl-toggle .chev{ width:14px; height:14px; }
-.tl-item.open .tl-toggle .chev{ transform:rotate(180deg); }
-.tl-desc{ margin-top:16px; max-width:68ch; font-size:13.5px; line-height:1.65; color:var(--dim); }
-.tl-detail{ height:0; overflow:hidden; transition:height .35s cubic-bezier(.16,1,.3,1); }
-.tl-detail-inner{ display:grid; grid-template-columns:repeat(3,1fr); gap:24px; padding-top:24px; margin-top:24px; border-top:1px solid var(--glass-border); }
+.tl-tab-text{ display:flex; flex-direction:column; padding-top:4px; }
+.tl-role{ font-family:'Space Grotesk'; font-weight:600; font-size:15px; line-height:1.35; color:var(--dim); transition:color .25s ease; }
+.tl-tab[aria-selected="true"] .tl-role{ color:var(--ink); }
+.tl-org{ margin-top:3px; font-size:12px; color:var(--dim); }
+.tl-period{ margin-top:3px; font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--dimmer); font-family:'JetBrains Mono'; }
+
+.journey-panel-wrap{ padding:30px 32px; min-height:300px; }
+.journey-panel{ animation:journeyPanelIn .4s cubic-bezier(.16,1,.3,1) both; }
+.journey-panel:focus-visible{ outline:none; }
+@keyframes journeyPanelIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
+@media (prefers-reduced-motion: reduce){ .journey-panel{ animation:none; } }
+.tl-desc{ font-size:14px; line-height:1.65; color:var(--dim); max-width:70ch; }
+.tl-detail-inner{ display:grid; grid-template-columns:repeat(3,1fr); gap:24px; padding-top:22px; margin-top:22px; border-top:1px solid var(--glass-border); }
 .tl-detail-group h5{ font-family:'JetBrains Mono'; font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--violet); margin-bottom:10px; }
 .tl-detail-group ul{ list-style:none; display:flex; flex-direction:column; gap:8px; }
 .tl-detail-group li{ position:relative; padding-left:14px; font-size:12.5px; line-height:1.6; color:var(--dim); }
 .tl-detail-group li::before{ content:""; position:absolute; left:0; top:7px; width:4px; height:4px; border-radius:50%; background:var(--cyan); }
-@media (max-width:800px){ .tl-detail-inner{ grid-template-columns:1fr; } }
+
+@media (max-width:900px){
+  .journey-tabs{ grid-template-columns:1fr; }
+  .tl-detail-inner{ grid-template-columns:1fr; }
+}
 
 /* ============================================================
    WORK / CASE STUDIES
