@@ -654,3 +654,19 @@ footer .sub{ margin:16px auto 0; max-width:46ch; font-size:14.5px; color:var(--d
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
 }
+
+/* ============================================================
+   MAGIC CURSOR — spring-eased custom pointer, ported from the
+   requested Framer "SmoothCursor" component. The bicolor icon (dark
+   fill + light outline) is self-contrasting against either theme by
+   design, so it needs no dark/light overrides of its own.
+   ============================================================ */
+.magic-cursor{
+  position:fixed; top:0; left:0; z-index:9999; pointer-events:none;
+  width:40px; height:40px; will-change:transform;
+  transform:translate(-100px,-100px);
+}
+.magic-cursor svg{ width:100%; height:100%; display:block; }
+.magic-cursor-fill{ fill:#000; }
+.magic-cursor-stroke{ fill:none; stroke:#fff; stroke-width:2.25825; }
+body.magic-cursor-active, body.magic-cursor-active *{ cursor:none !important; }

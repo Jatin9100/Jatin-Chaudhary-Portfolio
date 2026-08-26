@@ -818,6 +818,114 @@ window.addEventListener("pointermove", e => {
 }, { passive: true });
 
 /* ============================================================
+   INTERACTION: magic cursor — ported from the requested Framer
+   "SmoothCursor" component (framer.com/m/Smoothcursor-o8zdlR.js)
+   into vanilla JS, since this site has no React/build step. A
+   custom pointer icon chases the real cursor via damped springs on
+   position/rotation/scale (hand-rolled semi-implicit-Euler integrator
+   standing in for framer-motion's useSpring — same stiffness/damping/
+   mass values, so the feel matches even though the solvers differ).
+   Rotation faces the direction of travel with wrap-safe accumulation
+   (avoids snapping the "long way" across the +-180 degree seam); scale
+   squishes slightly while moving and on click. Skipped under
+   prefers-reduced-motion and on touch/narrow/portrait devices, mirroring
+   the source component's own mobile guard.
+   ============================================================ */
+(function magicCursor(){
+  if (prefersReducedMotion) return;
+  const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  const fitsDesktop = window.innerWidth >= 768 && window.innerWidth > window.innerHeight;
+  if (isTouch || !fitsDesktop) return;
+
+  const STIFFNESS = 400, DAMPING = 45, MASS = 1;
+  const ROT_STIFFNESS = 300, ROT_DAMPING = 60;
+  const SCALE_STIFFNESS = 500, SCALE_DAMPING = 35;
+
+  const cursor = document.createElement("div");
+  cursor.className = "magic-cursor";
+  cursor.setAttribute("aria-hidden", "true");
+  cursor.innerHTML = `
+    <svg viewBox="0 0 50 54" xmlns="http://www.w3.org/2000/svg">
+      <path class="magic-cursor-fill" d="M42.6817 41.1495L27.5103 6.79925C26.7269 5.02557 24.2082 5.02558 23.3927 6.79925L7.59814 41.1495C6.75833 42.9759 8.52712 44.8902 10.4125 44.1954L24.3757 39.0496C24.8829 38.8627 25.4385 38.8627 25.9422 39.0496L39.8121 44.1954C41.6849 44.8902 43.4884 42.9759 42.6817 41.1495Z" />
+      <path class="magic-cursor-stroke" d="M43.7146 40.6933L28.5431 6.34306C27.3556 3.65428 23.5772 3.69516 22.3668 6.32755L6.57226 40.6778C5.3134 43.4156 7.97238 46.298 10.803 45.2549L24.7662 40.109C25.0221 40.0147 25.2999 40.0156 25.5494 40.1082L39.4193 45.254C42.2261 46.2953 44.9254 43.4347 43.7146 40.6933Z" />
+    </svg>
+  `;
+  document.body.appendChild(cursor);
+  document.body.classList.add("magic-cursor-active");
+
+  const posX = { v: -100, vel: 0 }, posY = { v: -100, vel: 0 };
+  const rot = { v: 0, vel: 0 }, scl = { v: 1, vel: 0 };
+  let targetX = -100, targetY = -100, targetRot = 0, targetScale = 1;
+
+  function stepSpring(s, target, stiffness, damping, dt) {
+    const force = -stiffness * (s.v - target) - damping * s.vel;
+    s.vel += (force / MASS) * dt;
+    s.v += s.vel * dt;
+  }
+
+  let lastMouse = { x: 0, y: 0 }, lastMoveTime = performance.now();
+  let velocity = { x: 0, y: 0 };
+  let previousAngle = 0, accumulatedRotation = 0;
+  let isMouseDown = false, squishTimer = null, movePending = false;
+
+  function handleMouseMove(e) {
+    if (movePending) return;
+    movePending = true;
+    requestAnimationFrame(() => {
+      movePending = false;
+      const now = performance.now();
+      const dt = now - lastMoveTime;
+      if (dt > 0) {
+        velocity.x = (e.clientX - lastMouse.x) / dt;
+        velocity.y = (e.clientY - lastMouse.y) / dt;
+      }
+      lastMoveTime = now;
+      lastMouse = { x: e.clientX, y: e.clientY };
+      targetX = e.clientX;
+      targetY = e.clientY;
+
+      const speed = Math.hypot(velocity.x, velocity.y);
+      if (speed > 0.1) {
+        const currentAngle = Math.atan2(velocity.y, velocity.x) * (180 / Math.PI) + 90;
+        let angleDiff = currentAngle - previousAngle;
+        if (angleDiff > 180) angleDiff -= 360;
+        if (angleDiff < -180) angleDiff += 360;
+        accumulatedRotation += angleDiff;
+        targetRot = accumulatedRotation;
+        previousAngle = currentAngle;
+
+        if (!isMouseDown) {
+          targetScale = 0.95;
+          clearTimeout(squishTimer);
+          squishTimer = setTimeout(() => { if (!isMouseDown) targetScale = 1; }, 150);
+        }
+      }
+    });
+  }
+  function handleMouseDown() { isMouseDown = true; targetScale = 0.7; }
+  function handleMouseUp() { isMouseDown = false; targetScale = 1; }
+
+  window.addEventListener("mousemove", handleMouseMove, { passive: true });
+  window.addEventListener("mousedown", handleMouseDown, { passive: true });
+  window.addEventListener("mouseup", handleMouseUp, { passive: true });
+  window.addEventListener("mouseleave", handleMouseUp, { passive: true });
+
+  let lastFrameTime = performance.now();
+  function frame(now) {
+    const dt = Math.min((now - lastFrameTime) / 1000, 1 / 30); // clamp: stable through frame drops
+    lastFrameTime = now;
+    stepSpring(posX, targetX, STIFFNESS, DAMPING, dt);
+    stepSpring(posY, targetY, STIFFNESS, DAMPING, dt);
+    stepSpring(rot, targetRot, ROT_STIFFNESS, ROT_DAMPING, dt);
+    stepSpring(scl, targetScale, SCALE_STIFFNESS, SCALE_DAMPING, dt);
+    cursor.style.transform =
+      `translate(${posX.v.toFixed(2)}px, ${posY.v.toFixed(2)}px) translate(-50%,-50%) rotate(${rot.v.toFixed(2)}deg) scale(${scl.v.toFixed(3)})`;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ============================================================
    INTERACTION: modals (shared open/close helpers)
    ============================================================ */
 function openModal(overlay) {
