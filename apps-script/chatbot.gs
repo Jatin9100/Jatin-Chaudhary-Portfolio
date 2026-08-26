@@ -36,7 +36,7 @@ const GEMINI_MODEL = "gemini-3.1-flash-lite"; // lighter tier: plenty for short 
                                                // testing (confirmed via DEBUG_MODE below, not a
                                                // guess) -- a lighter/less-popular tier plus the
                                                // retry logic below is the actual resilience fix
-const DEBUG_MODE = true; // TEMPORARY -- set to false once the live proxy is confirmed working
+const DEBUG_MODE = false; // confirmed working live (gemini-3.1-flash-lite + 503 retry) -- keep this off
 const MAX_HISTORY_TURNS = 6;             // caps context sent per request (cost/latency)
 const MAX_MESSAGE_CHARS = 2000;
 
