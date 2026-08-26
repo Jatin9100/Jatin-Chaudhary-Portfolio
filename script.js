@@ -7,6 +7,14 @@
 const CONTACT_ENDPOINT = "https://script.google.com/macros/s/AKfycbxTkzMB0tnwQQ3BTuwSGV-vEK9zHsnQ9Jw_6kWVMvoRmKuuYleN7mOCraxNi206u4It/exec"; // e.g. "https://script.google.com/macros/s/XXXX/exec"
 const CONTACT_EMAIL = "jatinchaudhary910official@gmail.com";
 
+/* Same pattern as CONTACT_ENDPOINT above, for the portfolio chatbot —
+   see apps-script/chatbot.gs for the proxy this must point to and its
+   setup steps. Left blank, the chat panel still opens but shows a
+   "not configured yet" message instead of calling anything. The
+   Gemini API key itself must never go here — it lives only in that
+   Apps Script project's Script Properties. */
+const CHATBOT_ENDPOINT = ""; // e.g. "https://script.google.com/macros/s/XXXX/exec"
+
 /* ============================================================
    DATA — everything preserved from the original site content.
    Edit here; every section below renders from these objects.
@@ -1030,6 +1038,305 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+})();
+
+/* ============================================================
+   PORTFOLIO CHATBOT — a ghost mascot launcher (ported from the
+   requested Framer "Interactive Ghost" component's math: wavy-cloth
+   body path generation, mood-based facial-expression targets, cursor
+   eye-tracking, float/sway physics — reskinned to the site's violet/
+   cyan palette instead of its default lime-green) wired to a real
+   chat panel. The source component's own "chat" was just a static
+   quote bubble with no backend; the actual conversation here calls
+   the Gemini proxy in apps-script/chatbot.gs (see CHATBOT_ENDPOINT
+   above — the API key itself never touches this file or the repo).
+
+   Unlike the magic cursor / liquid name (purely decorative, fully
+   skipped under reduced-motion or on touch), this is a FUNCTIONAL
+   feature: it stays completely usable everywhere. Reduced-motion
+   trims only the idle animation layer (one static neutral frame
+   instead of the float/sway/blink loop); touch devices simply get no
+   eye-tracking (no continuous pointer to track), not a disabled bot.
+
+   Eye-tracking radius: the source component normalizes mouse position
+   relative to its OWN container's bounds, which works when that
+   container is hero-sized. Here it's a small 76px launcher button, so
+   literally porting that would mean the eyes only ever react within
+   a 76px box — barely noticeable. Tracking against a wider fixed
+   radius around the launcher's actual position instead, so cursor
+   movement across a meaningful part of the page is visible on the
+   ghost's eyes, the way the effect clearly reads in the source demo.
+   ============================================================ */
+(function portfolioChatbot(){
+  const root = document.getElementById("chatbotRoot");
+  if (!root) return;
+
+  const MOOD_STATES = {
+    neutral: { lEyeRot:0, rEyeRot:0, eyeScale:1, mouthW:10, mouthY:118, mouthCurveT:0, mouthCurveB:0, mouthOp:0, browY:86, browAngle:0, browCurve:0, browOp:0 },
+    happy:   { lEyeRot:0, rEyeRot:0, eyeScale:1, mouthW:22, mouthY:116, mouthCurveT:2, mouthCurveB:14, mouthOp:1, browY:78, browAngle:-5, browCurve:-4, browOp:1 },
+    sad:     { lEyeRot:-12, rEyeRot:12, eyeScale:.9, mouthW:16, mouthY:122, mouthCurveT:-6, mouthCurveB:-2, mouthOp:1, browY:84, browAngle:-12, browCurve:-2, browOp:1 },
+    anxious: { lEyeRot:0, rEyeRot:0, eyeScale:.8, mouthW:12, mouthY:120, mouthCurveT:-2, mouthCurveB:2, mouthOp:1, browY:80, browAngle:-4, browCurve:-1, browOp:1 },
+  };
+
+  const CX = 100, R = 70, BASE_Y = 170;
+  const VB_HEIGHT = Math.max(240, BASE_Y + 60);
+  const EYE_TRACK_RADIUS = 260; // px around the launcher's own center
+
+  root.innerHTML = `
+    <button class="chatbot-launcher" id="chatbotLauncher" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="chatbotPanel" aria-label="Chat with the portfolio assistant">
+      <svg viewBox="-150 -80 500 ${VB_HEIGHT + 120}">
+        <defs>
+          <linearGradient id="ghostFrontGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#DDD6FE"/><stop offset="45%" stop-color="#8B5CF6"/><stop offset="100%" stop-color="#5B21B6"/>
+          </linearGradient>
+          <linearGradient id="ghostBackGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#6D28D9"/><stop offset="100%" stop-color="#3B0764"/>
+          </linearGradient>
+          <filter id="ghostGlowBlur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="20"/></filter>
+          <filter id="ghostGlowBlur2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="34"/></filter>
+        </defs>
+        <g id="ghostGroup">
+          <ellipse cx="100" cy="${VB_HEIGHT / 2}" rx="90" ry="110" fill="#8B5CF6" opacity=".28" filter="url(#ghostGlowBlur1)"></ellipse>
+          <ellipse cx="100" cy="${VB_HEIGHT / 2}" rx="130" ry="150" fill="#22D3EE" opacity=".16" filter="url(#ghostGlowBlur2)"></ellipse>
+          <path id="ghostBack" fill="url(#ghostBackGrad)"></path>
+          <path id="ghostFront" fill="url(#ghostFrontGrad)"></path>
+          <g id="ghostFace">
+            <g id="ghostBrows">
+              <path id="ghostBrowL" stroke="#1A1025" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
+              <path id="ghostBrowR" stroke="#1A1025" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
+            </g>
+            <ellipse id="ghostEyeL" cx="80" cy="100" fill="#1A1025"></ellipse>
+            <ellipse id="ghostEyeR" cx="120" cy="100" fill="#1A1025"></ellipse>
+            <path id="ghostMouth" fill="#1A1025"></path>
+          </g>
+        </g>
+      </svg>
+    </button>
+    <div class="glass chatbot-panel" id="chatbotPanel" role="dialog" aria-modal="false" aria-label="Chat about Jatin's portfolio">
+      <div class="chatbot-header">
+        <div>
+          <div class="chatbot-header-title">Ask about Jatin</div>
+          <div class="chatbot-header-sub">${CHATBOT_ENDPOINT ? "Roles, projects, impact — ask away" : "Demo mode — proxy not connected yet"}</div>
+        </div>
+        <button class="chatbot-close" id="chatbotClose" type="button" aria-label="Close chat"><i data-lucide="x" class="icon"></i></button>
+      </div>
+      <div class="chatbot-log" id="chatbotLog" role="log" aria-live="polite" aria-label="Conversation"></div>
+      <div class="chatbot-inputrow">
+        <textarea class="chatbot-input" id="chatbotInput" rows="1" placeholder="Ask about his experience, projects, skills…" aria-label="Your message"></textarea>
+        <button class="chatbot-send" id="chatbotSend" type="button" aria-label="Send message"><i data-lucide="send" class="icon"></i></button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+
+  const launcher = document.getElementById("chatbotLauncher");
+  const panel = document.getElementById("chatbotPanel");
+  const closeBtn = document.getElementById("chatbotClose");
+  const logEl = document.getElementById("chatbotLog");
+  const inputEl = document.getElementById("chatbotInput");
+  const sendBtn = document.getElementById("chatbotSend");
+  const ghostGroup = document.getElementById("ghostGroup");
+  const faceGroup = document.getElementById("ghostFace");
+  const browsGroup = document.getElementById("ghostBrows");
+  const backPathEl = document.getElementById("ghostBack");
+  const frontPathEl = document.getElementById("ghostFront");
+  const eyeL = document.getElementById("ghostEyeL");
+  const eyeR = document.getElementById("ghostEyeR");
+  const browL = document.getElementById("ghostBrowL");
+  const browR = document.getElementById("ghostBrowR");
+  const mouthPathEl = document.getElementById("ghostMouth");
+
+  let mood = "neutral";
+  const faceState = { ...MOOD_STATES.neutral };
+  const targetMouse = { x: 0, y: 0 };
+  const currentMouse = { x: 0, y: 0 };
+
+  function setMood(next) { mood = next; }
+
+  window.addEventListener("mousemove", e => {
+    const rect = launcher.getBoundingClientRect();
+    const lx = rect.left + rect.width / 2, ly = rect.top + rect.height / 2;
+    const dx = (e.clientX - lx) / EYE_TRACK_RADIUS, dy = (e.clientY - ly) / EYE_TRACK_RADIUS;
+    targetMouse.x = Math.max(-1, Math.min(1, dx));
+    targetMouse.y = Math.max(-1, Math.min(1, dy));
+  }, { passive: true });
+
+  function bodyPaths(time) {
+    const wind = time * 0.002;
+    const waveY = (x, isBack) => {
+      const nx = (x - CX) / R;
+      const drape = Math.cos(nx * Math.PI * 0.5) * 12;
+      const offset = isBack ? Math.PI * 0.8 : 0;
+      const wave1 = Math.sin(nx * 3.14 - wind + offset) * 8;
+      const wave2 = Math.sin(nx * 6.28 - wind * 1.5 + offset) * 3;
+      const flutter = Math.sin(nx * 12 - wind * 3) * (Math.abs(nx) * 2);
+      return BASE_Y + (isBack ? -drape * 0.5 : drape) + wave1 + wave2 + flutter;
+    };
+    const N = 60;
+    let f = `M ${CX - R} 100 A ${R} ${R} 0 0 1 ${CX + R} 100 `;
+    for (let i = 0; i <= N; i++) { const x = CX + R - (i / N) * (2 * R); f += `L ${x} ${waveY(x, false)} `; }
+    f += "Z";
+    let b = `M ${CX - R} 100 L ${CX + R} 100 `;
+    for (let i = 0; i <= N; i++) { const x = CX - R + (i / N) * (2 * R); b += `L ${x} ${waveY(x, true)} `; }
+    b += "Z";
+    return { front: f, back: b };
+  }
+
+  function renderGhost(time) {
+    const { front, back } = bodyPaths(time);
+    frontPathEl.setAttribute("d", front);
+    backPathEl.setAttribute("d", back);
+
+    let blinkScale = 1;
+    const blinkCycle = time % 4000;
+    if (blinkCycle < 150) blinkScale = Math.max(0.1, 1 - Math.sin((blinkCycle / 150) * Math.PI));
+
+    const eyeOffsetX = currentMouse.x * 16, eyeOffsetY = currentMouse.y * 16;
+    faceGroup.style.transform = `translate(${eyeOffsetX}px, ${eyeOffsetY}px)`;
+
+    eyeL.setAttribute("rx", 8 * faceState.eyeScale); eyeL.setAttribute("ry", 16 * faceState.eyeScale);
+    eyeL.style.transformOrigin = "80px 100px"; eyeL.style.transform = `rotate(${faceState.lEyeRot}deg) scaleY(${blinkScale})`;
+    eyeR.setAttribute("rx", 8 * faceState.eyeScale); eyeR.setAttribute("ry", 16 * faceState.eyeScale);
+    eyeR.style.transformOrigin = "120px 100px"; eyeR.style.transform = `rotate(${faceState.rEyeRot}deg) scaleY(${blinkScale})`;
+
+    browL.setAttribute("d", `M 70 ${faceState.browY} Q 80 ${faceState.browY + faceState.browCurve} 90 ${faceState.browY}`);
+    browR.setAttribute("d", `M 110 ${faceState.browY} Q 120 ${faceState.browY + faceState.browCurve} 130 ${faceState.browY}`);
+    browL.style.transformOrigin = `80px ${faceState.browY}px`; browL.style.transform = `rotate(${faceState.browAngle}deg)`;
+    browR.style.transformOrigin = `120px ${faceState.browY}px`; browR.style.transform = `rotate(${-faceState.browAngle}deg)`;
+    browsGroup.style.opacity = faceState.browOp;
+
+    mouthPathEl.setAttribute("d", `M ${100 - faceState.mouthW / 2} ${faceState.mouthY} Q 100 ${faceState.mouthY + faceState.mouthCurveT} ${100 + faceState.mouthW / 2} ${faceState.mouthY} Q 100 ${faceState.mouthY + faceState.mouthCurveB} ${100 - faceState.mouthW / 2} ${faceState.mouthY} Z`);
+    mouthPathEl.style.opacity = faceState.mouthOp;
+
+    const swayX = Math.cos(time * 0.0015) * 8;
+    const floatY = Math.sin(time * 0.002) * 12;
+    const bodyRotation = currentMouse.x * 8 + Math.sin(time * 0.001) * 3;
+    ghostGroup.style.transformOrigin = `100px ${VB_HEIGHT / 2}px`;
+    ghostGroup.style.transform = `translate(${swayX}px, ${floatY}px) rotate(${bodyRotation}deg)`;
+  }
+
+  if (prefersReducedMotion) {
+    renderGhost(0); // one static neutral frame — no ongoing loop
+  } else {
+    let visible = true;
+    new IntersectionObserver(entries => { visible = entries[0].isIntersecting; }, { threshold: 0 }).observe(launcher);
+    const startTime = performance.now();
+    function loop(now) {
+      if (visible) {
+        currentMouse.x += (targetMouse.x - currentMouse.x) * 0.08;
+        currentMouse.y += (targetMouse.y - currentMouse.y) * 0.08;
+        const target = MOOD_STATES[mood] || MOOD_STATES.neutral;
+        for (const key in target) faceState[key] += (target[key] - faceState[key]) * 0.12;
+        renderGhost(now - startTime);
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  /* ---- panel open/close ---- */
+  let panelOpen = false;
+  function openPanel() {
+    panelOpen = true;
+    panel.classList.add("open");
+    launcher.setAttribute("aria-expanded", "true");
+    if (!messages.length) {
+      addMessage("bot", "Hi! I'm here to answer questions about Jatin's experience, projects, and skills. What would you like to know?");
+    }
+    setMood("happy");
+    setTimeout(() => { if (mood === "happy") setMood("neutral"); }, 1800);
+    inputEl.focus();
+  }
+  function closePanel() {
+    panelOpen = false;
+    panel.classList.remove("open");
+    launcher.setAttribute("aria-expanded", "false");
+    launcher.focus();
+  }
+  launcher.addEventListener("click", () => { panelOpen ? closePanel() : openPanel(); });
+  closeBtn.addEventListener("click", closePanel);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && panelOpen) closePanel(); });
+
+  /* ---- chat ---- */
+  const messages = []; // {role:"user"|"bot", text}
+
+  function addMessage(role, text, isError) {
+    messages.push({ role, text });
+    const div = document.createElement("div");
+    div.className = "chatbot-msg " + role + (isError ? " error" : "");
+    div.textContent = text;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function showTyping() {
+    const div = document.createElement("div");
+    div.className = "chatbot-typing";
+    div.id = "chatbotTypingIndicator";
+    div.innerHTML = "<span></span><span></span><span></span>";
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function hideTyping() {
+    document.getElementById("chatbotTypingIndicator")?.remove();
+  }
+  function autosize() {
+    inputEl.style.height = "auto";
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 96) + "px";
+  }
+
+  let sending = false;
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || sending) return;
+    inputEl.value = "";
+    autosize();
+    addMessage("user", text);
+    sending = true;
+    sendBtn.disabled = true;
+    setMood("anxious");
+    showTyping();
+
+    if (!CHATBOT_ENDPOINT) {
+      await new Promise(r => setTimeout(r, 500));
+      hideTyping();
+      addMessage("bot", "The chatbot proxy isn't connected yet — see apps-script/chatbot.gs for setup. In the meantime, feel free to use the contact form below!", true);
+      setMood("sad");
+      setTimeout(() => setMood("neutral"), 2000);
+      sending = false;
+      sendBtn.disabled = false;
+      return;
+    }
+
+    try {
+      // No explicit Content-Type: keeps this a CORS "simple request" (no
+      // preflight OPTIONS), which Apps Script web apps don't handle.
+      const history = messages.slice(-8).map(m => ({ role: m.role, text: m.text }));
+      const res = await fetch(CHATBOT_ENDPOINT, { method: "POST", body: JSON.stringify({ message: text, history }) });
+      const data = await res.json();
+      hideTyping();
+      if (data.error) {
+        addMessage("bot", data.error, true);
+        setMood("sad");
+      } else {
+        addMessage("bot", data.reply || "Sorry, I didn't catch that — could you rephrase?");
+        setMood("happy");
+      }
+    } catch (err) {
+      hideTyping();
+      addMessage("bot", "Couldn't reach the assistant right now — please try again, or use the contact form.", true);
+      setMood("sad");
+    } finally {
+      setTimeout(() => setMood("neutral"), 2000);
+      sending = false;
+      sendBtn.disabled = false;
+    }
+  }
+
+  sendBtn.addEventListener("click", sendMessage);
+  inputEl.addEventListener("input", autosize);
+  inputEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
 })();
 
 /* ============================================================
