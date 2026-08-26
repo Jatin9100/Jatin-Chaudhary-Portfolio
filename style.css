@@ -287,33 +287,36 @@ html[data-theme="light"] .theme-toggle .knob .icon.sun{ display:block; }
 .hero h1{ font-family:'Space Grotesk'; font-weight:700; line-height:1.12; letter-spacing:-0.02em; }
 .hero .name-highlight{
   display:block; font-size:clamp(34px,5.6vw,68px); margin-bottom:8px; font-weight:800;
-  /* polished metal type: a bright specular band travels the letterforms once
-     on load, then the name settles into its lit gradient */
-  background:linear-gradient(100deg,
-    color-mix(in srgb, var(--ink) 72%, transparent) 0%,
-    var(--ink) 34%,
-    var(--name-shine) 46%,
-    var(--ink) 58%,
-    color-mix(in srgb, var(--ink) 72%, transparent) 100%);
-  background-size:280% 100%; background-position:100% 0;
-  -webkit-background-clip:text; background-clip:text; color:transparent;
-  filter:drop-shadow(0 0 26px color-mix(in srgb, var(--ink) 22%, transparent));
-  animation:nameShimmer 2.6s cubic-bezier(.32,.06,.16,1) .35s both;
-  transition:filter .5s ease;
+  /* polished metal type: a soft specular band across the letterforms.
+     The gradient itself lives here as a custom property only — the
+     fill/clip is applied per-letter below, not on this element. */
+  --name-gradient:linear-gradient(100deg,
+    color-mix(in srgb, var(--ink) 88%, transparent) 0%,
+    var(--ink) 30%,
+    var(--name-shine) 50%,
+    var(--ink) 70%,
+    color-mix(in srgb, var(--ink) 88%, transparent) 100%);
 }
-@keyframes nameShimmer{
-  from{ background-position:100% 0; }
-  to{ background-position:20% 0; }
-}
-@media (prefers-reduced-motion: reduce){
-  .hero .name-highlight{ animation:none; background-position:20% 0; }
-}
-/* per-letter spans for the liquid-hover effect (script.js liquidName) —
-   display:inline-block so transforms apply reliably, transform-origin
-   at the baseline so a letter reads as being "pulled up" rather than
-   stretching symmetrically from its own center */
+/* per-letter spans for the liquid-hover effect (script.js liquidName).
+   The gradient fill/clip moves here (off the parent) deliberately:
+   background-clip:text on a PARENT stops reliably clipping once its
+   descendants get their own transform/will-change — a real browser
+   compositing conflict (not hypothetical: it's what broke the title
+   in production) where the clip mask can't be computed once the
+   letters are promoted to separate layers. Keeping clip + transform
+   on the SAME element sidesteps the conflict entirely. Each letter's
+   background-size/position (set inline by JS, from its own measured
+   offset) shows the matching slice of one continuous name-wide
+   gradient, so it still reads as one polished band across the whole
+   name despite being 14 separately-animated elements. This trades
+   away the old on-load shimmer *sweep* for a static gradient — mid-
+   animation-synchronizing 14 independent elements is not something
+   worth the added risk for a load-time flourish. */
 .hero .name-highlight .name-letter{
   display:inline-block; transform-origin:center bottom; will-change:transform;
+  background-image:var(--name-gradient); background-repeat:no-repeat;
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 0 26px color-mix(in srgb, var(--ink) 22%, transparent));
 }
 .hero .title-line{ display:block; margin-top:6px; font-size:clamp(16px,2.4vw,32px); font-weight:600; color:color-mix(in srgb, var(--ink) 90%, transparent); letter-spacing:-0.01em; line-height:1.3; }
 .hero .sub{ margin-top:clamp(14px,2.2vh,22px); max-width:62ch; font-size:clamp(13px,1.5vw,15px); line-height:1.65; color:var(--dim); }

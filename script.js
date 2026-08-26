@@ -973,8 +973,28 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
       L.cy = r.top + r.height / 2;
     }
   }
-  measureRestPositions();
-  window.addEventListener("resize", measureRestPositions);
+  // Each letter shows the matching slice of one continuous name-wide
+  // gradient (background-size = the whole name's width, background-
+  // position = this letter's own negative offset within it) so the
+  // per-letter background-clip:text still reads as one polished band
+  // across the full name. See the CSS comment on .name-letter for why
+  // the fill lives per-letter instead of on the parent.
+  function layoutGradientSlices() {
+    const nameRect = nameEl.getBoundingClientRect();
+    for (const L of letters) {
+      const r = L.el.getBoundingClientRect();
+      const offsetX = r.left - nameRect.left;
+      L.el.style.backgroundSize = `${nameRect.width}px 100%`;
+      L.el.style.backgroundPosition = `${-offsetX}px 0`;
+    }
+  }
+  function relayout() { measureRestPositions(); layoutGradientSlices(); }
+  relayout();
+  window.addEventListener("resize", relayout);
+  // fonts load asynchronously (Google Fonts <link>) — if this ran against
+  // a fallback font, both the rest-positions and the gradient slices
+  // would be measured against widths that are about to shift
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
 
   let mouseX = -9999, mouseY = -9999;
   window.addEventListener("mousemove", e => { mouseX = e.clientX; mouseY = e.clientY; }, { passive: true });
