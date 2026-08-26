@@ -1044,9 +1044,9 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
    PORTFOLIO CHATBOT — a ghost mascot launcher (ported from the
    requested Framer "Interactive Ghost" component's math: wavy-cloth
    body path generation, mood-based facial-expression targets, cursor
-   eye-tracking, float/sway physics — reskinned to the site's violet/
-   cyan palette instead of its default lime-green) wired to a real
-   chat panel. The source component's own "chat" was just a static
+   eye-tracking, float/sway physics, and its default lime-green colors,
+   kept exact per request rather than reskinned to the site palette)
+   wired to a real chat panel. The source component's own "chat" was just a static
    quote bubble with no backend; the actual conversation here calls
    the Gemini proxy in apps-script/chatbot.gs (see CHATBOT_ENDPOINT
    above — the API key itself never touches this file or the repo).
@@ -1087,17 +1087,17 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
       <svg viewBox="-150 -80 500 ${VB_HEIGHT + 120}">
         <defs>
           <linearGradient id="ghostFrontGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#DDD6FE"/><stop offset="45%" stop-color="#8B5CF6"/><stop offset="100%" stop-color="#5B21B6"/>
+            <stop offset="0%" stop-color="#eaff5e"/><stop offset="40%" stop-color="#a3e635"/><stop offset="100%" stop-color="#16a34a"/>
           </linearGradient>
           <linearGradient id="ghostBackGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#6D28D9"/><stop offset="100%" stop-color="#3B0764"/>
+            <stop offset="0%" stop-color="#65a30d"/><stop offset="100%" stop-color="#14532d"/>
           </linearGradient>
           <filter id="ghostGlowBlur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="20"/></filter>
           <filter id="ghostGlowBlur2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="34"/></filter>
         </defs>
         <g id="ghostGroup">
-          <ellipse cx="100" cy="${VB_HEIGHT / 2}" rx="90" ry="110" fill="#8B5CF6" opacity=".28" filter="url(#ghostGlowBlur1)"></ellipse>
-          <ellipse cx="100" cy="${VB_HEIGHT / 2}" rx="130" ry="150" fill="#22D3EE" opacity=".16" filter="url(#ghostGlowBlur2)"></ellipse>
+          <ellipse cx="100" cy="${VB_HEIGHT / 2}" rx="90" ry="110" fill="#eaff5e" opacity=".3" filter="url(#ghostGlowBlur1)"></ellipse>
+          <ellipse cx="100" cy="${VB_HEIGHT / 2}" rx="130" ry="150" fill="#eaff5e" opacity=".2" filter="url(#ghostGlowBlur2)"></ellipse>
           <path id="ghostBack" fill="url(#ghostBackGrad)"></path>
           <path id="ghostFront" fill="url(#ghostFrontGrad)"></path>
           <g id="ghostFace">
