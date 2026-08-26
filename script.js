@@ -7,6 +7,14 @@
 const CONTACT_ENDPOINT = "https://script.google.com/macros/s/AKfycbxTkzMB0tnwQQ3BTuwSGV-vEK9zHsnQ9Jw_6kWVMvoRmKuuYleN7mOCraxNi206u4It/exec"; // e.g. "https://script.google.com/macros/s/XXXX/exec"
 const CONTACT_EMAIL = "jatinchaudhary910official@gmail.com";
 
+/* Same pattern as CONTACT_ENDPOINT above, for the portfolio chatbot —
+   see apps-script/chatbot.gs for the proxy this must point to and its
+   setup steps. Left blank, the chat panel still opens but shows a
+   "not configured yet" message instead of calling anything. The
+   Gemini API key itself must never go here — it lives only in that
+   Apps Script project's Script Properties. */
+const CHATBOT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyQoyPUgCwSu--vvKokXIYow-yAFwyx7tOBPu4vG-X2fQBLgkwf-8ZnM70HjcDN-7BI/exec";
+
 /* ============================================================
    DATA — everything preserved from the original site content.
    Edit here; every section below renders from these objects.
@@ -817,6 +825,550 @@ window.addEventListener("pointermove", e => {
   });
 }, { passive: true });
 
+/* Shared damped-spring integrator (semi-implicit Euler) — standing in for
+   framer-motion's useSpring across both the magic cursor and the liquid
+   name-hover effect below. Verified numerically stable and convergent at
+   the stiffness/damping/mass values each caller uses, including under
+   sudden target jumps and rapid target flips. */
+function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
+  const force = -stiffness * (s.v - target) - damping * s.vel;
+  s.vel += (force / mass) * dt;
+  s.v += s.vel * dt;
+}
+
+/* ============================================================
+   INTERACTION: magic cursor — ported from the requested Framer
+   "SmoothCursor" component (framer.com/m/Smoothcursor-o8zdlR.js)
+   into vanilla JS, since this site has no React/build step. A
+   custom pointer icon chases the real cursor via damped springs on
+   position/rotation/scale. Rotation faces the direction of travel
+   with wrap-safe accumulation (avoids snapping the "long way" across
+   the +-180 degree seam); scale squishes slightly while moving and on
+   click. Skipped under prefers-reduced-motion and on touch/narrow/
+   portrait devices, mirroring the source component's own mobile guard.
+   ============================================================ */
+(function magicCursor(){
+  if (prefersReducedMotion) return;
+  const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  const fitsDesktop = window.innerWidth >= 768 && window.innerWidth > window.innerHeight;
+  if (isTouch || !fitsDesktop) return;
+
+  const STIFFNESS = 400, DAMPING = 45, MASS = 1;
+  const ROT_STIFFNESS = 300, ROT_DAMPING = 60;
+  const SCALE_STIFFNESS = 500, SCALE_DAMPING = 35;
+
+  const cursor = document.createElement("div");
+  cursor.className = "magic-cursor";
+  cursor.setAttribute("aria-hidden", "true");
+  cursor.innerHTML = `<img src="assets/cursor/rocket-cursor.png" alt="">`;
+  document.body.appendChild(cursor);
+  document.body.classList.add("magic-cursor-active");
+
+  const posX = { v: -100, vel: 0 }, posY = { v: -100, vel: 0 };
+  const rot = { v: 0, vel: 0 }, scl = { v: 1, vel: 0 };
+  let targetX = -100, targetY = -100, targetRot = 0, targetScale = 1;
+
+  let lastMouse = { x: 0, y: 0 }, lastMoveTime = performance.now();
+  let velocity = { x: 0, y: 0 };
+  let previousAngle = 0, accumulatedRotation = 0;
+  let isMouseDown = false, squishTimer = null, movePending = false;
+
+  function handleMouseMove(e) {
+    if (movePending) return;
+    movePending = true;
+    requestAnimationFrame(() => {
+      movePending = false;
+      const now = performance.now();
+      const dt = now - lastMoveTime;
+      if (dt > 0) {
+        velocity.x = (e.clientX - lastMouse.x) / dt;
+        velocity.y = (e.clientY - lastMouse.y) / dt;
+      }
+      lastMoveTime = now;
+      lastMouse = { x: e.clientX, y: e.clientY };
+      targetX = e.clientX;
+      targetY = e.clientY;
+
+      const speed = Math.hypot(velocity.x, velocity.y);
+      if (speed > 0.1) {
+        const currentAngle = Math.atan2(velocity.y, velocity.x) * (180 / Math.PI) + 90;
+        let angleDiff = currentAngle - previousAngle;
+        if (angleDiff > 180) angleDiff -= 360;
+        if (angleDiff < -180) angleDiff += 360;
+        accumulatedRotation += angleDiff;
+        targetRot = accumulatedRotation;
+        previousAngle = currentAngle;
+
+        if (!isMouseDown) {
+          targetScale = 0.95;
+          clearTimeout(squishTimer);
+          squishTimer = setTimeout(() => { if (!isMouseDown) targetScale = 1; }, 150);
+        }
+      }
+    });
+  }
+  function handleMouseDown() { isMouseDown = true; targetScale = 0.7; }
+  function handleMouseUp() { isMouseDown = false; targetScale = 1; }
+
+  window.addEventListener("mousemove", handleMouseMove, { passive: true });
+  window.addEventListener("mousedown", handleMouseDown, { passive: true });
+  window.addEventListener("mouseup", handleMouseUp, { passive: true });
+  window.addEventListener("mouseleave", handleMouseUp, { passive: true });
+
+  let lastFrameTime = performance.now();
+  function frame(now) {
+    const dt = Math.min((now - lastFrameTime) / 1000, 1 / 30); // clamp: stable through frame drops
+    lastFrameTime = now;
+    dampedSpringStep(posX, targetX, STIFFNESS, DAMPING, MASS, dt);
+    dampedSpringStep(posY, targetY, STIFFNESS, DAMPING, MASS, dt);
+    dampedSpringStep(rot, targetRot, ROT_STIFFNESS, ROT_DAMPING, MASS, dt);
+    dampedSpringStep(scl, targetScale, SCALE_STIFFNESS, SCALE_DAMPING, MASS, dt);
+    cursor.style.transform =
+      `translate(${posX.v.toFixed(2)}px, ${posY.v.toFixed(2)}px) translate(-50%,-50%) rotate(${rot.v.toFixed(2)}deg) scale(${scl.v.toFixed(3)})`;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ============================================================
+   INTERACTION: liquid name hover — the hero's "Jatin Chaudhary" name
+   splits into per-letter spans that elastically stretch/lean toward
+   a nearby cursor, then spring back to their crisp rest shape as the
+   cursor moves away. Approximates a canvas-shader liquid warp with
+   per-letter CSS transforms instead: each letter's scaleY/scaleX/
+   translateY/skew is its own damped spring (the same integrator the
+   magic cursor uses), driven by proximity to the cursor rather than
+   click/velocity state. Rest positions are measured once (and on
+   resize) rather than every frame, so the animation itself never
+   feeds back into its own distance calculation.
+   ============================================================ */
+(function liquidName(){
+  const nameEl = document.querySelector(".hero .name-highlight");
+  if (!nameEl) return;
+  if (prefersReducedMotion) return;
+  const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  if (isTouch) return;
+
+  const RADIUS = 95;              // px influence radius around each letter
+  const STIFFNESS = 320, DAMPING = 28, MASS = 1;
+
+  const fullText = nameEl.textContent;
+  nameEl.setAttribute("aria-label", fullText);
+  nameEl.textContent = "";
+  const letterWrap = document.createElement("span");
+  letterWrap.setAttribute("aria-hidden", "true");
+  nameEl.appendChild(letterWrap);
+
+  const letters = [];
+  for (const ch of fullText) {
+    if (ch === " ") { letterWrap.appendChild(document.createTextNode(" ")); continue; }
+    const span = document.createElement("span");
+    span.className = "name-letter";
+    span.textContent = ch;
+    letterWrap.appendChild(span);
+    letters.push({
+      el: span,
+      cx: 0, cy: 0, // cached rest-position center, measured on load/resize
+      scaleX: { v: 1, vel: 0 }, scaleY: { v: 1, vel: 0 },
+      ty: { v: 0, vel: 0 }, skew: { v: 0, vel: 0 },
+    });
+  }
+
+  function measureRestPositions() {
+    for (const L of letters) {
+      const r = L.el.getBoundingClientRect();
+      L.cx = r.left + r.width / 2;
+      L.cy = r.top + r.height / 2;
+    }
+  }
+  // Each letter shows the matching slice of one continuous name-wide
+  // gradient (background-size = the whole name's width, background-
+  // position = this letter's own negative offset within it) so the
+  // per-letter background-clip:text still reads as one polished band
+  // across the full name. See the CSS comment on .name-letter for why
+  // the fill lives per-letter instead of on the parent.
+  function layoutGradientSlices() {
+    const nameRect = nameEl.getBoundingClientRect();
+    for (const L of letters) {
+      const r = L.el.getBoundingClientRect();
+      const offsetX = r.left - nameRect.left;
+      L.el.style.backgroundSize = `${nameRect.width}px 100%`;
+      L.el.style.backgroundPosition = `${-offsetX}px 0`;
+    }
+  }
+  function relayout() { measureRestPositions(); layoutGradientSlices(); }
+  relayout();
+  window.addEventListener("resize", relayout);
+  // fonts load asynchronously (Google Fonts <link>) — if this ran against
+  // a fallback font, both the rest-positions and the gradient slices
+  // would be measured against widths that are about to shift
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
+
+  let mouseX = -9999, mouseY = -9999;
+  window.addEventListener("mousemove", e => { mouseX = e.clientX; mouseY = e.clientY; }, { passive: true });
+  window.addEventListener("mouseleave", () => { mouseX = -9999; mouseY = -9999; }, { passive: true });
+
+  let visible = true;
+  new IntersectionObserver(entries => { visible = entries[0].isIntersecting; }, { threshold: 0 }).observe(nameEl);
+
+  let lastFrameTime = performance.now();
+  function frame(now) {
+    const dt = Math.min((now - lastFrameTime) / 1000, 1 / 30);
+    lastFrameTime = now;
+    if (visible) {
+      for (const L of letters) {
+        const dx = mouseX - L.cx, dy = mouseY - L.cy;
+        const dist = Math.hypot(dx, dy);
+        const proximity = Math.max(0, 1 - dist / RADIUS) ** 1.5; // eased falloff, snappier near center
+
+        const targetScaleY = 1 + proximity * 0.55;
+        const targetScaleX = 1 - proximity * 0.18;
+        const targetTy = -proximity * 12;
+        const targetSkew = Math.max(-10, Math.min(10, (dx / RADIUS) * proximity * 10));
+
+        dampedSpringStep(L.scaleY, targetScaleY, STIFFNESS, DAMPING, MASS, dt);
+        dampedSpringStep(L.scaleX, targetScaleX, STIFFNESS, DAMPING, MASS, dt);
+        dampedSpringStep(L.ty, targetTy, STIFFNESS, DAMPING, MASS, dt);
+        dampedSpringStep(L.skew, targetSkew, STIFFNESS, DAMPING, MASS, dt);
+
+        L.el.style.transform =
+          `translateY(${L.ty.v.toFixed(2)}px) skewX(${L.skew.v.toFixed(2)}deg) scale(${L.scaleX.v.toFixed(3)}, ${L.scaleY.v.toFixed(3)})`;
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ============================================================
+   PORTFOLIO CHATBOT — a ghost mascot launcher (ported from the
+   requested Framer "Interactive Ghost" component's math: wavy-cloth
+   body path generation, mood-based facial-expression targets, cursor
+   eye-tracking, float/sway physics, and its default lime-green colors,
+   kept exact per request rather than reskinned to the site palette)
+   wired to a real chat panel. The source component's own "chat" was just a static
+   quote bubble with no backend; the actual conversation here calls
+   the Gemini proxy in apps-script/chatbot.gs (see CHATBOT_ENDPOINT
+   above — the API key itself never touches this file or the repo).
+
+   Unlike the magic cursor / liquid name (purely decorative, fully
+   skipped under reduced-motion or on touch), this is a FUNCTIONAL
+   feature: it stays completely usable everywhere. Reduced-motion
+   trims only the idle animation layer (one static neutral frame
+   instead of the float/sway/blink loop); touch devices simply get no
+   eye-tracking (no continuous pointer to track), not a disabled bot.
+
+   Eye-tracking radius: the source component normalizes mouse position
+   relative to its OWN container's bounds, which works when that
+   container is hero-sized. Here it's a small 76px launcher button, so
+   literally porting that would mean the eyes only ever react within
+   a 76px box — barely noticeable. Tracking against a wider fixed
+   radius around the launcher's actual position instead, so cursor
+   movement across a meaningful part of the page is visible on the
+   ghost's eyes, the way the effect clearly reads in the source demo.
+   ============================================================ */
+(function portfolioChatbot(){
+  const root = document.getElementById("chatbotRoot");
+  if (!root) return;
+
+  const MOOD_STATES = {
+    neutral: { lEyeRot:0, rEyeRot:0, eyeScale:1, mouthW:10, mouthY:118, mouthCurveT:0, mouthCurveB:0, mouthOp:0, browY:86, browAngle:0, browCurve:0, browOp:0 },
+    happy:   { lEyeRot:0, rEyeRot:0, eyeScale:1, mouthW:22, mouthY:116, mouthCurveT:2, mouthCurveB:14, mouthOp:1, browY:78, browAngle:-5, browCurve:-4, browOp:1 },
+    sad:     { lEyeRot:-12, rEyeRot:12, eyeScale:.9, mouthW:16, mouthY:122, mouthCurveT:-6, mouthCurveB:-2, mouthOp:1, browY:84, browAngle:-12, browCurve:-2, browOp:1 },
+    anxious: { lEyeRot:0, rEyeRot:0, eyeScale:.8, mouthW:12, mouthY:120, mouthCurveT:-2, mouthCurveB:2, mouthOp:1, browY:80, browAngle:-4, browCurve:-1, browOp:1 },
+  };
+
+  const CX = 100, R = 70, BASE_Y = 170;
+  const VB_HEIGHT = Math.max(240, BASE_Y + 60);
+  const EYE_TRACK_RADIUS = 260; // px around the launcher's own center
+
+  root.innerHTML = `
+    <button class="chatbot-launcher" id="chatbotLauncher" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="chatbotPanel" aria-label="Chat with the portfolio assistant">
+      <svg viewBox="-150 -80 500 ${VB_HEIGHT + 120}">
+        <defs>
+          <linearGradient id="ghostFrontGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#eaff5e"/><stop offset="40%" stop-color="#a3e635"/><stop offset="100%" stop-color="#16a34a"/>
+          </linearGradient>
+          <linearGradient id="ghostBackGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#65a30d"/><stop offset="100%" stop-color="#14532d"/>
+          </linearGradient>
+          <filter id="ghostGlowBlur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="20"/></filter>
+          <filter id="ghostGlowBlur2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="34"/></filter>
+        </defs>
+        <g id="ghostGroup">
+          <ellipse cx="100" cy="${VB_HEIGHT / 2}" rx="90" ry="110" fill="#eaff5e" opacity=".3" filter="url(#ghostGlowBlur1)"></ellipse>
+          <ellipse cx="100" cy="${VB_HEIGHT / 2}" rx="130" ry="150" fill="#eaff5e" opacity=".2" filter="url(#ghostGlowBlur2)"></ellipse>
+          <path id="ghostBack" fill="url(#ghostBackGrad)"></path>
+          <path id="ghostFront" fill="url(#ghostFrontGrad)"></path>
+          <g id="ghostFace">
+            <g id="ghostBrows">
+              <path id="ghostBrowL" stroke="#1A1025" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
+              <path id="ghostBrowR" stroke="#1A1025" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
+            </g>
+            <ellipse id="ghostEyeL" cx="80" cy="100" fill="#1A1025"></ellipse>
+            <ellipse id="ghostEyeR" cx="120" cy="100" fill="#1A1025"></ellipse>
+            <path id="ghostMouth" fill="#1A1025"></path>
+          </g>
+        </g>
+      </svg>
+    </button>
+    <div class="glass chatbot-panel" id="chatbotPanel" role="dialog" aria-modal="false" aria-label="Chat about Jatin's portfolio">
+      <div class="chatbot-header">
+        <div>
+          <div class="chatbot-header-title">Ask about Jatin</div>
+          <div class="chatbot-header-sub">${CHATBOT_ENDPOINT ? "Roles, projects, impact — ask away" : "Demo mode — proxy not connected yet"}</div>
+        </div>
+        <button class="chatbot-close" id="chatbotClose" type="button" aria-label="Close chat"><i data-lucide="x" class="icon"></i></button>
+      </div>
+      <div class="chatbot-log" id="chatbotLog" role="log" aria-live="polite" aria-label="Conversation"></div>
+      <div class="chatbot-inputrow">
+        <textarea class="chatbot-input" id="chatbotInput" rows="1" placeholder="Ask about his experience, projects, skills…" aria-label="Your message"></textarea>
+        <button class="chatbot-send" id="chatbotSend" type="button" aria-label="Send message"><i data-lucide="send" class="icon"></i></button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+
+  const launcher = document.getElementById("chatbotLauncher");
+  const panel = document.getElementById("chatbotPanel");
+  const closeBtn = document.getElementById("chatbotClose");
+  const logEl = document.getElementById("chatbotLog");
+  const inputEl = document.getElementById("chatbotInput");
+  const sendBtn = document.getElementById("chatbotSend");
+  const ghostGroup = document.getElementById("ghostGroup");
+  const faceGroup = document.getElementById("ghostFace");
+  const browsGroup = document.getElementById("ghostBrows");
+  const backPathEl = document.getElementById("ghostBack");
+  const frontPathEl = document.getElementById("ghostFront");
+  const eyeL = document.getElementById("ghostEyeL");
+  const eyeR = document.getElementById("ghostEyeR");
+  const browL = document.getElementById("ghostBrowL");
+  const browR = document.getElementById("ghostBrowR");
+  const mouthPathEl = document.getElementById("ghostMouth");
+
+  let mood = "neutral";
+  const faceState = { ...MOOD_STATES.neutral };
+  const targetMouse = { x: 0, y: 0 };
+  const currentMouse = { x: 0, y: 0 };
+
+  function setMood(next) { mood = next; }
+
+  window.addEventListener("mousemove", e => {
+    const rect = launcher.getBoundingClientRect();
+    const lx = rect.left + rect.width / 2, ly = rect.top + rect.height / 2;
+    const dx = (e.clientX - lx) / EYE_TRACK_RADIUS, dy = (e.clientY - ly) / EYE_TRACK_RADIUS;
+    targetMouse.x = Math.max(-1, Math.min(1, dx));
+    targetMouse.y = Math.max(-1, Math.min(1, dy));
+  }, { passive: true });
+
+  function bodyPaths(time) {
+    const wind = time * 0.002;
+    const waveY = (x, isBack) => {
+      const nx = (x - CX) / R;
+      const drape = Math.cos(nx * Math.PI * 0.5) * 12;
+      const offset = isBack ? Math.PI * 0.8 : 0;
+      const wave1 = Math.sin(nx * 3.14 - wind + offset) * 8;
+      const wave2 = Math.sin(nx * 6.28 - wind * 1.5 + offset) * 3;
+      const flutter = Math.sin(nx * 12 - wind * 3) * (Math.abs(nx) * 2);
+      return BASE_Y + (isBack ? -drape * 0.5 : drape) + wave1 + wave2 + flutter;
+    };
+    const N = 60;
+    let f = `M ${CX - R} 100 A ${R} ${R} 0 0 1 ${CX + R} 100 `;
+    for (let i = 0; i <= N; i++) { const x = CX + R - (i / N) * (2 * R); f += `L ${x} ${waveY(x, false)} `; }
+    f += "Z";
+    let b = `M ${CX - R} 100 L ${CX + R} 100 `;
+    for (let i = 0; i <= N; i++) { const x = CX - R + (i / N) * (2 * R); b += `L ${x} ${waveY(x, true)} `; }
+    b += "Z";
+    return { front: f, back: b };
+  }
+
+  function renderGhost(time) {
+    const { front, back } = bodyPaths(time);
+    frontPathEl.setAttribute("d", front);
+    backPathEl.setAttribute("d", back);
+
+    let blinkScale = 1;
+    const blinkCycle = time % 4000;
+    if (blinkCycle < 150) blinkScale = Math.max(0.1, 1 - Math.sin((blinkCycle / 150) * Math.PI));
+
+    const eyeOffsetX = currentMouse.x * 16, eyeOffsetY = currentMouse.y * 16;
+    faceGroup.style.transform = `translate(${eyeOffsetX}px, ${eyeOffsetY}px)`;
+
+    eyeL.setAttribute("rx", 8 * faceState.eyeScale); eyeL.setAttribute("ry", 16 * faceState.eyeScale);
+    eyeL.style.transformOrigin = "80px 100px"; eyeL.style.transform = `rotate(${faceState.lEyeRot}deg) scaleY(${blinkScale})`;
+    eyeR.setAttribute("rx", 8 * faceState.eyeScale); eyeR.setAttribute("ry", 16 * faceState.eyeScale);
+    eyeR.style.transformOrigin = "120px 100px"; eyeR.style.transform = `rotate(${faceState.rEyeRot}deg) scaleY(${blinkScale})`;
+
+    browL.setAttribute("d", `M 70 ${faceState.browY} Q 80 ${faceState.browY + faceState.browCurve} 90 ${faceState.browY}`);
+    browR.setAttribute("d", `M 110 ${faceState.browY} Q 120 ${faceState.browY + faceState.browCurve} 130 ${faceState.browY}`);
+    browL.style.transformOrigin = `80px ${faceState.browY}px`; browL.style.transform = `rotate(${faceState.browAngle}deg)`;
+    browR.style.transformOrigin = `120px ${faceState.browY}px`; browR.style.transform = `rotate(${-faceState.browAngle}deg)`;
+    browsGroup.style.opacity = faceState.browOp;
+
+    mouthPathEl.setAttribute("d", `M ${100 - faceState.mouthW / 2} ${faceState.mouthY} Q 100 ${faceState.mouthY + faceState.mouthCurveT} ${100 + faceState.mouthW / 2} ${faceState.mouthY} Q 100 ${faceState.mouthY + faceState.mouthCurveB} ${100 - faceState.mouthW / 2} ${faceState.mouthY} Z`);
+    mouthPathEl.style.opacity = faceState.mouthOp;
+
+    const swayX = Math.cos(time * 0.0015) * 8;
+    const floatY = Math.sin(time * 0.002) * 12;
+    const bodyRotation = currentMouse.x * 8 + Math.sin(time * 0.001) * 3;
+    ghostGroup.style.transformOrigin = `100px ${VB_HEIGHT / 2}px`;
+    ghostGroup.style.transform = `translate(${swayX}px, ${floatY}px) rotate(${bodyRotation}deg)`;
+  }
+
+  if (prefersReducedMotion) {
+    renderGhost(0); // one static neutral frame — no ongoing loop
+  } else {
+    let visible = true;
+    new IntersectionObserver(entries => { visible = entries[0].isIntersecting; }, { threshold: 0 }).observe(launcher);
+    const startTime = performance.now();
+    function loop(now) {
+      if (visible) {
+        currentMouse.x += (targetMouse.x - currentMouse.x) * 0.08;
+        currentMouse.y += (targetMouse.y - currentMouse.y) * 0.08;
+        const target = MOOD_STATES[mood] || MOOD_STATES.neutral;
+        for (const key in target) faceState[key] += (target[key] - faceState[key]) * 0.12;
+        renderGhost(now - startTime);
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  /* ---- panel open/close ---- */
+  let panelOpen = false;
+  function openPanel() {
+    panelOpen = true;
+    panel.classList.add("open");
+    launcher.setAttribute("aria-expanded", "true");
+    if (!messages.length) {
+      addMessage("bot", "Hi! I'm here to answer questions about Jatin's experience, projects, and skills. What would you like to know?");
+    }
+    setMood("happy");
+    setTimeout(() => { if (mood === "happy") setMood("neutral"); }, 1800);
+    inputEl.focus();
+  }
+  function closePanel() {
+    panelOpen = false;
+    panel.classList.remove("open");
+    launcher.setAttribute("aria-expanded", "false");
+    launcher.focus();
+  }
+  launcher.addEventListener("click", () => { panelOpen ? closePanel() : openPanel(); });
+  closeBtn.addEventListener("click", closePanel);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && panelOpen) closePanel(); });
+
+  /* ---- chat ---- */
+  const messages = []; // {role:"user"|"bot", text}
+
+  const MD_ESCAPE = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  function escapeHtml(s) { return s.replace(/[&<>"']/g, c => MD_ESCAPE[c]); }
+
+  /* Gemini replies come back as markdown (bold, bullet/numbered lists,
+     paragraphs) — plain textContent was dumping the raw ** and * / 1.
+     characters as visible clutter and collapsing all line breaks, which
+     is exactly the "unstructured" look reported. This renders that
+     small markdown subset as real HTML instead. Escapes everything
+     FIRST, so only tags this function itself adds ever reach the DOM —
+     model output is treated as untrusted text, never as raw HTML. */
+  function renderMarkdownLite(text) {
+    const escaped = escapeHtml(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    const blocks = escaped.split(/\n{2,}/);
+    return blocks.map(block => {
+      const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+      if (!lines.length) return "";
+      if (lines.every(l => /^[*-]\s+/.test(l))) {
+        return "<ul>" + lines.map(l => `<li>${l.replace(/^[*-]\s+/, "")}</li>`).join("") + "</ul>";
+      }
+      if (lines.every(l => /^\d+\.\s+/.test(l))) {
+        return "<ol>" + lines.map(l => `<li>${l.replace(/^\d+\.\s+/, "")}</li>`).join("") + "</ol>";
+      }
+      return `<p>${lines.join("<br>")}</p>`;
+    }).join("");
+  }
+
+  function addMessage(role, text, isError) {
+    messages.push({ role, text });
+    const div = document.createElement("div");
+    div.className = "chatbot-msg " + role + (isError ? " error" : "");
+    if (role === "bot" && !isError) {
+      div.innerHTML = renderMarkdownLite(text); // safe: escaped above before any tag is added
+    } else {
+      div.textContent = text; // user's own input, and our own hardcoded error strings
+    }
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function showTyping() {
+    const div = document.createElement("div");
+    div.className = "chatbot-typing";
+    div.id = "chatbotTypingIndicator";
+    div.innerHTML = "<span></span><span></span><span></span>";
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function hideTyping() {
+    document.getElementById("chatbotTypingIndicator")?.remove();
+  }
+  function autosize() {
+    inputEl.style.height = "auto";
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 96) + "px";
+  }
+
+  let sending = false;
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || sending) return;
+    inputEl.value = "";
+    autosize();
+    addMessage("user", text);
+    sending = true;
+    sendBtn.disabled = true;
+    setMood("anxious");
+    showTyping();
+
+    if (!CHATBOT_ENDPOINT) {
+      await new Promise(r => setTimeout(r, 500));
+      hideTyping();
+      addMessage("bot", "The chatbot proxy isn't connected yet — see apps-script/chatbot.gs for setup. In the meantime, feel free to use the contact form below!", true);
+      setMood("sad");
+      setTimeout(() => setMood("neutral"), 2000);
+      sending = false;
+      sendBtn.disabled = false;
+      return;
+    }
+
+    try {
+      // No explicit Content-Type: keeps this a CORS "simple request" (no
+      // preflight OPTIONS), which Apps Script web apps don't handle.
+      const history = messages.slice(-8).map(m => ({ role: m.role, text: m.text }));
+      const res = await fetch(CHATBOT_ENDPOINT, { method: "POST", body: JSON.stringify({ message: text, history }) });
+      const data = await res.json();
+      hideTyping();
+      if (data.error) {
+        addMessage("bot", data.error, true);
+        setMood("sad");
+      } else {
+        addMessage("bot", data.reply || "Sorry, I didn't catch that — could you rephrase?");
+        setMood("happy");
+      }
+    } catch (err) {
+      hideTyping();
+      addMessage("bot", "Couldn't reach the assistant right now — please try again, or use the contact form.", true);
+      setMood("sad");
+    } finally {
+      setTimeout(() => setMood("neutral"), 2000);
+      sending = false;
+      sendBtn.disabled = false;
+    }
+  }
+
+  sendBtn.addEventListener("click", sendMessage);
+  inputEl.addEventListener("input", autosize);
+  inputEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+})();
+
 /* ============================================================
    INTERACTION: modals (shared open/close helpers)
    ============================================================ */
@@ -1024,5 +1576,338 @@ updateNavSpy();
     ty = (e.clientY / window.innerHeight) * 2 - 1;
     if (!running) { running = true; requestAnimationFrame(frame); }
   }, { passive: true });
+})();
+
+/* ============================================================
+   EYE-FOLLOW BUTTON — ported from the requested Framer "Eye Follow
+   Button" component (see the CSS block of the same name for why only
+   the eye-tracking itself, not the whole component, was portable).
+   Pupils track the pointer the same way the chatbot ghost's eyes do:
+   angle + clamped distance from the element's own center.
+   ============================================================ */
+(function eyeFollowButton(){
+  if (prefersReducedMotion) return;
+  const btn = document.getElementById("contactBtnFooter");
+  if (!btn) return;
+  const pupils = btn.querySelectorAll(".pupil");
+  if (!pupils.length) return;
+  const RANGE = 4; // max px a pupil can travel from center
+  const RADIUS = 140; // px from the button's center for full deflection
+
+  window.addEventListener("pointermove", e => {
+    const rect = btn.getBoundingClientRect();
+    const dx = e.clientX - (rect.left + rect.width / 2);
+    const dy = e.clientY - (rect.top + rect.height / 2);
+    const dist = Math.min(Math.hypot(dx, dy), RADIUS);
+    const angle = Math.atan2(dy, dx);
+    const x = Math.cos(angle) * (dist / RADIUS) * RANGE;
+    const y = Math.sin(angle) * (dist / RADIUS) * RANGE;
+    pupils.forEach(p => { p.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`; });
+  }, { passive: true });
+})();
+
+/* ============================================================
+   FOCUS REVEAL (phone number) — see the CSS block of the same name.
+   Toggles the reveal via a JS class instead of CSS :hover, which
+   Chromium doesn't reliably apply here since the ancestor also has
+   its own backdrop-filter (a known filter/backdrop-filter repaint
+   quirk on nested elements). mouseenter/leave covers mouse, focus/
+   blur covers keyboard, touchstart/end covers touch (no hover state).
+   ============================================================ */
+(function focusRevealPhone(){
+  const phoneText = document.querySelector(".phone-blur");
+  const link = phoneText && phoneText.closest("a");
+  if (!link) return;
+  const reveal = () => link.classList.add("phone-revealed");
+  const hide = () => link.classList.remove("phone-revealed");
+  link.addEventListener("mouseenter", reveal);
+  link.addEventListener("mouseleave", hide);
+  link.addEventListener("focus", reveal);
+  link.addEventListener("blur", hide);
+  link.addEventListener("touchstart", reveal, { passive: true });
+  link.addEventListener("touchend", hide);
+})();
+
+/* ============================================================
+   ARCADE — retro canvas shooter, ported from the requested Framer
+   "Space Shooter" component. Its only Framer-specific imports are
+   addPropertyControls/ControlType, which just feed Framer's own
+   editor panel — the actual game is plain React state + canvas 2D
+   calls, so the rules below (800x600 world, pixel-snapped drawing,
+   200ms auto-fire, 1s enemy spawns, AABB collision, 0.5%/frame enemy
+   fire chance) are ported 1:1. What changed for this site: score and
+   game-over text moved off the canvas into themed DOM elements (so
+   they follow light/dark like the rest of the page — the canvas
+   itself stays a fixed dark "screen" the way an embedded video would),
+   touch input is a single pointer-drag-to-follow instead of the
+   original's quadrant-to-arrow-key mapping, and the palette was
+   reskinned to this site's violet/cyan/pink accents.
+   ============================================================ */
+(function spaceShooterArcade(){
+  const canvas = document.getElementById("arcadeCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const scoreEl = document.getElementById("arcadeScore");
+  const overlay = document.getElementById("arcadeOverlay");
+  const overlayTitle = document.getElementById("arcadeOverlayTitle");
+  const overlayMsg = document.getElementById("arcadeOverlayMsg");
+  const startBtn = document.getElementById("arcadeStartBtn");
+  const controlsWrap = document.getElementById("arcadeControls");
+  const pauseBtn = document.getElementById("arcadePauseBtn");
+  const stopBtn = document.getElementById("arcadeStopBtn");
+
+  const CANVAS_WIDTH = 800, CANVAS_HEIGHT = 600, PIXEL_SIZE = 4;
+  const PLAYER_SIZE = 32, ENEMY_SIZE = 24;
+  const COLORS = {
+    background: "#05060B",
+    player: "#22D3EE",
+    bullet: "#A3E635",
+    enemy: "#EC4899",
+    enemyBullet: "#8B5CF6",
+    explosion: "#F2F1ED",
+    star: "rgba(242,241,237,.85)",
+  };
+
+  let score = 0;
+  let state = freshState();
+  const keys = new Set();
+  let dragTarget = null;
+  let phase = "idle"; // "idle" | "playing" | "paused" | "over"
+  let offscreen = true;
+  let rafId = null;
+  let overlayAction = startGame;
+
+  function freshState() {
+    return {
+      player: { x: 400, y: 500, width: PLAYER_SIZE, height: PLAYER_SIZE, speed: 5 },
+      bullets: [], enemyBullets: [], enemies: [], explosions: [],
+      lastEnemySpawn: 0, lastBulletFire: 0, gameOver: false,
+    };
+  }
+
+  function drawPixelRect(x, y, w, h, color) {
+    ctx.fillStyle = color;
+    const pw = Math.floor(w / PIXEL_SIZE) * PIXEL_SIZE, ph = Math.floor(h / PIXEL_SIZE) * PIXEL_SIZE;
+    ctx.fillRect(Math.floor(x / PIXEL_SIZE) * PIXEL_SIZE, Math.floor(y / PIXEL_SIZE) * PIXEL_SIZE, pw, ph);
+  }
+  function drawPlayer(p) {
+    const x = Math.floor(p.x / PIXEL_SIZE) * PIXEL_SIZE, y = Math.floor(p.y / PIXEL_SIZE) * PIXEL_SIZE;
+    const s = p.width / 32;
+    ctx.fillStyle = COLORS.player;
+    ctx.fillRect(x + 12 * s, y, 8 * s, 24 * s);
+    ctx.fillRect(x, y + 16 * s, 32 * s, 8 * s);
+    ctx.fillRect(x + 8 * s, y + 4 * s, 16 * s, 8 * s);
+    ctx.fillRect(x + 4 * s, y + 24 * s, 8 * s, 8 * s);
+    ctx.fillRect(x + 20 * s, y + 24 * s, 8 * s, 8 * s);
+  }
+  function drawEnemy(en) {
+    const x = Math.floor(en.x / PIXEL_SIZE) * PIXEL_SIZE, y = Math.floor(en.y / PIXEL_SIZE) * PIXEL_SIZE;
+    const s = en.width / 24;
+    ctx.fillStyle = COLORS.enemy;
+    ctx.fillRect(x + 10 * s, y, 4 * s, 12 * s);
+    ctx.fillRect(x + 4 * s, y + 8 * s, 16 * s, 4 * s);
+    ctx.fillRect(x + 8 * s, y + 2 * s, 8 * s, 4 * s);
+    ctx.fillRect(x + 6 * s, y + 12 * s, 4 * s, 4 * s);
+    ctx.fillRect(x + 14 * s, y + 12 * s, 4 * s, 4 * s);
+  }
+  function drawExplosion(ex) {
+    const x = Math.floor(ex.x / PIXEL_SIZE) * PIXEL_SIZE, y = Math.floor(ex.y / PIXEL_SIZE) * PIXEL_SIZE;
+    const size = ex.frame * 4;
+    ctx.fillStyle = COLORS.explosion;
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+      if (Math.random() > 0.3) ctx.fillRect(x + i * 8 - size / 2, y + j * 8 - size / 2, 8, 8);
+    }
+  }
+  function checkCollision(a, b) {
+    return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+  }
+  function spawnEnemy() {
+    return { x: Math.random() * (CANVAS_WIDTH - ENEMY_SIZE), y: -ENEMY_SIZE, width: ENEMY_SIZE, height: ENEMY_SIZE, speed: 2 + Math.random() * 3, active: true, type: Math.floor(Math.random() * 2) };
+  }
+  function fireBullet(p) { return { x: p.x + p.width / 2 - 2, y: p.y, width: 4, height: 12, speed: 8, active: true }; }
+  function fireEnemyBullet(en) { return { x: en.x + en.width / 2 - 2, y: en.y + en.height, width: 4, height: 8, speed: 4, active: true }; }
+
+  function endGame() {
+    if (phase === "over") return;
+    phase = "over";
+    state.gameOver = true;
+    state.explosions.push({ x: state.player.x + state.player.width / 2, y: state.player.y + state.player.height / 2, frame: 0 });
+    stopLoop();
+    overlayTitle.textContent = "GAME OVER";
+    overlayMsg.textContent = `Final score: ${score} — press any key, tap, or hit restart.`;
+    overlayAction = startGame;
+    startBtn.textContent = "Restart";
+    overlay.classList.remove("hide");
+    updateControlsVisibility();
+  }
+
+  function updateGame() {
+    if (state.gameOver) return;
+    const now = Date.now();
+    const p = state.player;
+
+    if (keys.has("ArrowLeft") && p.x > 0) p.x -= p.speed;
+    if (keys.has("ArrowRight") && p.x < CANVAS_WIDTH - p.width) p.x += p.speed;
+    if (keys.has("ArrowUp") && p.y > 0) p.y -= p.speed;
+    if (keys.has("ArrowDown") && p.y < CANVAS_HEIGHT - p.height) p.y += p.speed;
+
+    if (dragTarget) {
+      const dx = (dragTarget.x - p.width / 2) - p.x, dy = (dragTarget.y - p.height / 2) - p.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 5) { p.x += (dx / dist) * p.speed; p.y += (dy / dist) * p.speed; }
+      p.x = Math.max(0, Math.min(CANVAS_WIDTH - p.width, p.x));
+      p.y = Math.max(0, Math.min(CANVAS_HEIGHT - p.height, p.y));
+    }
+
+    if (now - state.lastBulletFire > 200) { state.bullets.push(fireBullet(p)); state.lastBulletFire = now; }
+    state.bullets = state.bullets.filter(b => { b.y -= b.speed; return b.y > -b.height && b.active; });
+    state.enemyBullets = state.enemyBullets.filter(b => { b.y += b.speed; return b.y < CANVAS_HEIGHT + b.height && b.active; });
+
+    if (now - state.lastEnemySpawn > 1000) { state.enemies.push(spawnEnemy()); state.lastEnemySpawn = now; }
+    state.enemies = state.enemies.filter(en => {
+      en.y += en.speed;
+      if (Math.random() < 0.005) state.enemyBullets.push(fireEnemyBullet(en));
+      return en.y < CANVAS_HEIGHT + en.height && en.active;
+    });
+
+    state.bullets.forEach(b => state.enemies.forEach(en => {
+      if (b.active && en.active && checkCollision(b, en)) {
+        b.active = false; en.active = false;
+        state.explosions.push({ x: en.x + en.width / 2, y: en.y + en.height / 2, frame: 0 });
+        score += (en.type + 1) * 10;
+        scoreEl.textContent = `SCORE ${score}`;
+      }
+    }));
+    state.enemies.forEach(en => { if (en.active && checkCollision(en, p)) endGame(); });
+    state.enemyBullets.forEach(b => { if (b.active && checkCollision(b, p)) endGame(); });
+
+    state.bullets = state.bullets.filter(b => b.active);
+    state.enemyBullets = state.enemyBullets.filter(b => b.active);
+    state.enemies = state.enemies.filter(en => en.active);
+    state.explosions = state.explosions.filter(ex => { ex.frame++; return ex.frame < 10; });
+  }
+
+  function drawStars(t) {
+    ctx.fillStyle = COLORS.star;
+    for (let i = 0; i < 50; i++) {
+      const x = (i * 137 + Math.sin(i * 2.3) * 100) % CANVAS_WIDTH;
+      const y = (i * 197 + Math.cos(i * 1.7) * 150 + t * 0.1) % CANVAS_HEIGHT;
+      const sx = Math.floor(x / PIXEL_SIZE) * PIXEL_SIZE, sy = Math.floor(y / PIXEL_SIZE) * PIXEL_SIZE;
+      const size = 2 * PIXEL_SIZE;
+      ctx.fillRect(sx, sy - size, size, size * 3);
+      ctx.fillRect(sx - size, sy, size * 3, size);
+    }
+  }
+
+  function render() {
+    ctx.fillStyle = COLORS.background;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    drawStars(Date.now());
+    if (!state.gameOver) drawPlayer(state.player);
+    state.bullets.forEach(b => drawPixelRect(b.x, b.y, b.width, b.height, COLORS.bullet));
+    state.enemyBullets.forEach(b => drawPixelRect(b.x, b.y, b.width, b.height, COLORS.enemyBullet));
+    state.enemies.forEach(drawEnemy);
+    state.explosions.forEach(drawExplosion);
+  }
+
+  function loop() {
+    updateGame();
+    render();
+    rafId = requestAnimationFrame(loop);
+  }
+  function stopLoop() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+  function ensureLoop() {
+    if (!rafId && phase === "playing" && !offscreen) loop();
+  }
+
+  function updateControlsVisibility() {
+    const active = phase === "playing" || phase === "paused";
+    controlsWrap.hidden = !active;
+    pauseBtn.classList.toggle("is-paused", phase === "paused");
+    pauseBtn.setAttribute("aria-label", phase === "paused" ? "Resume" : "Pause");
+  }
+
+  function startGame() {
+    score = 0;
+    scoreEl.textContent = "SCORE 0";
+    state = freshState();
+    phase = "playing";
+    overlay.classList.add("hide");
+    updateControlsVisibility();
+    canvas.focus();
+    ensureLoop();
+  }
+  function pauseGame() {
+    if (phase !== "playing") return;
+    phase = "paused";
+    stopLoop();
+    overlayTitle.textContent = "PAUSED";
+    overlayMsg.textContent = "Take a beat — resume whenever you're ready.";
+    overlayAction = resumeGame;
+    startBtn.textContent = "Resume";
+    overlay.classList.remove("hide");
+    updateControlsVisibility();
+  }
+  function resumeGame() {
+    if (phase !== "paused") return;
+    phase = "playing";
+    overlay.classList.add("hide");
+    updateControlsVisibility();
+    canvas.focus();
+    ensureLoop();
+  }
+  function stopGame() {
+    if (phase === "idle") return;
+    phase = "idle";
+    stopLoop();
+    score = 0;
+    scoreEl.textContent = "SCORE 0";
+    state = freshState();
+    render();
+    overlayTitle.textContent = "SPACE SHOOTER";
+    overlayMsg.textContent = "Arrow keys or drag to move — your ship fires on its own. Survive as long as you can.";
+    overlayAction = startGame;
+    startBtn.textContent = "Play";
+    overlay.classList.remove("hide");
+    updateControlsVisibility();
+  }
+
+  startBtn.addEventListener("click", () => overlayAction());
+  pauseBtn.addEventListener("click", () => { if (phase === "paused") resumeGame(); else pauseGame(); });
+  stopBtn.addEventListener("click", stopGame);
+
+  canvas.addEventListener("keydown", e => {
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) { e.preventDefault(); keys.add(e.key); }
+    if (phase === "over") startGame();
+  });
+  canvas.addEventListener("keyup", e => keys.delete(e.key));
+
+  function canvasPoint(e) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: (e.clientX - rect.left) * (CANVAS_WIDTH / rect.width), y: (e.clientY - rect.top) * (CANVAS_HEIGHT / rect.height) };
+  }
+  canvas.addEventListener("pointerdown", e => {
+    canvas.focus();
+    if (phase === "over") { startGame(); return; }
+    if (phase !== "playing") return;
+    canvas.setPointerCapture(e.pointerId);
+    dragTarget = canvasPoint(e);
+  });
+  canvas.addEventListener("pointermove", e => { if (dragTarget) dragTarget = canvasPoint(e); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(ev => canvas.addEventListener(ev, () => { dragTarget = null; }));
+
+  // pause the loop off-screen to save CPU, resume when it's back in view
+  // (this is separate from the user-facing Pause button — going offscreen
+  // never changes `phase`, so coming back into view resumes automatically
+  // only if the player hadn't paused it themselves)
+  new IntersectionObserver(entries => {
+    offscreen = !entries[0].isIntersecting;
+    if (offscreen) stopLoop(); else ensureLoop();
+  }, { threshold: 0 }).observe(canvas);
+
+  updateControlsVisibility();
+  render(); // one idle frame behind the "Play" overlay before the game starts
 })();
 

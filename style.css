@@ -287,26 +287,36 @@ html[data-theme="light"] .theme-toggle .knob .icon.sun{ display:block; }
 .hero h1{ font-family:'Space Grotesk'; font-weight:700; line-height:1.12; letter-spacing:-0.02em; }
 .hero .name-highlight{
   display:block; font-size:clamp(34px,5.6vw,68px); margin-bottom:8px; font-weight:800;
-  /* polished metal type: a bright specular band travels the letterforms once
-     on load, then the name settles into its lit gradient */
-  background:linear-gradient(100deg,
-    color-mix(in srgb, var(--ink) 72%, transparent) 0%,
-    var(--ink) 34%,
-    var(--name-shine) 46%,
-    var(--ink) 58%,
-    color-mix(in srgb, var(--ink) 72%, transparent) 100%);
-  background-size:280% 100%; background-position:100% 0;
+  /* polished metal type: a soft specular band across the letterforms.
+     The gradient itself lives here as a custom property only — the
+     fill/clip is applied per-letter below, not on this element. */
+  --name-gradient:linear-gradient(100deg,
+    color-mix(in srgb, var(--ink) 88%, transparent) 0%,
+    var(--ink) 30%,
+    var(--name-shine) 50%,
+    var(--ink) 70%,
+    color-mix(in srgb, var(--ink) 88%, transparent) 100%);
+}
+/* per-letter spans for the liquid-hover effect (script.js liquidName).
+   The gradient fill/clip moves here (off the parent) deliberately:
+   background-clip:text on a PARENT stops reliably clipping once its
+   descendants get their own transform/will-change — a real browser
+   compositing conflict (not hypothetical: it's what broke the title
+   in production) where the clip mask can't be computed once the
+   letters are promoted to separate layers. Keeping clip + transform
+   on the SAME element sidesteps the conflict entirely. Each letter's
+   background-size/position (set inline by JS, from its own measured
+   offset) shows the matching slice of one continuous name-wide
+   gradient, so it still reads as one polished band across the whole
+   name despite being 14 separately-animated elements. This trades
+   away the old on-load shimmer *sweep* for a static gradient — mid-
+   animation-synchronizing 14 independent elements is not something
+   worth the added risk for a load-time flourish. */
+.hero .name-highlight .name-letter{
+  display:inline-block; transform-origin:center bottom; will-change:transform;
+  background-image:var(--name-gradient); background-repeat:no-repeat;
   -webkit-background-clip:text; background-clip:text; color:transparent;
   filter:drop-shadow(0 0 26px color-mix(in srgb, var(--ink) 22%, transparent));
-  animation:nameShimmer 2.6s cubic-bezier(.32,.06,.16,1) .35s both;
-  transition:filter .5s ease;
-}
-@keyframes nameShimmer{
-  from{ background-position:100% 0; }
-  to{ background-position:20% 0; }
-}
-@media (prefers-reduced-motion: reduce){
-  .hero .name-highlight{ animation:none; background-position:20% 0; }
 }
 .hero .title-line{ display:block; margin-top:6px; font-size:clamp(16px,2.4vw,32px); font-weight:600; color:color-mix(in srgb, var(--ink) 90%, transparent); letter-spacing:-0.01em; line-height:1.3; }
 .hero .sub{ margin-top:clamp(14px,2.2vh,22px); max-width:62ch; font-size:clamp(13px,1.5vw,15px); line-height:1.65; color:var(--dim); }
@@ -654,3 +664,227 @@ footer .sub{ margin:16px auto 0; max-width:46ch; font-size:14.5px; color:var(--d
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
 }
+
+/* ============================================================
+   MAGIC CURSOR — spring-eased custom pointer, ported from the
+   requested Framer "SmoothCursor" component. Icon is the user's own
+   rocket artwork; its nose sits ~21.1deg off the image's own vertical
+   axis (measured from the source PNG), so a fixed counter-rotation on
+   the <img> itself corrects that before the JS-driven, direction-of-
+   travel rotation is applied to the wrapper on top of it.
+   ============================================================ */
+.magic-cursor{
+  position:fixed; top:0; left:0; z-index:9999; pointer-events:none;
+  width:22px; height:22px; will-change:transform; /* ~native cursor size */
+  transform:translate(-100px,-100px);
+}
+.magic-cursor img{ width:100%; height:100%; object-fit:contain; display:block; transform:rotate(21.1deg); }
+body.magic-cursor-active, body.magic-cursor-active *{ cursor:none !important; }
+
+/* ============================================================
+   PORTFOLIO CHATBOT — a ghost mascot (ported from the requested
+   Framer "Interactive Ghost" component: procedural wavy-cloth SVG
+   body, mood-based facial expressions, cursor eye-tracking, float/
+   sway physics — reskinned to the site's violet/cyan palette rather
+   than its default lime-green) as the launcher for a real chat panel.
+   Unlike the magic cursor / liquid name (purely decorative, skipped
+   under reduced-motion or on touch), this is a FUNCTIONAL feature —
+   it stays fully usable everywhere; only its idle animation layer is
+   trimmed under reduced-motion, and eye-tracking simply has no effect
+   without a pointer (touch) rather than being disabled outright.
+   ============================================================ */
+.chatbot-launcher{
+  position:fixed; right:24px; bottom:24px; z-index:500;
+  width:76px; height:76px; padding:0; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  filter:drop-shadow(0 10px 24px rgba(0,0,0,.35));
+}
+.chatbot-launcher:focus-visible{ outline:2px solid var(--violet); outline-offset:4px; border-radius:50%; }
+.chatbot-launcher svg{ width:100%; height:100%; overflow:visible; }
+
+.chatbot-panel{
+  position:fixed; right:24px; bottom:112px; z-index:499;
+  width:min(400px, calc(100vw - 32px)); height:min(580px, calc(100vh - 160px));
+  display:flex; flex-direction:column; overflow:hidden; padding:0;
+  transform-origin:bottom right;
+  transform:scale(.92) translateY(12px); opacity:0; pointer-events:none;
+  transition:transform .28s cubic-bezier(.16,1,.3,1), opacity .22s ease;
+}
+.chatbot-panel.open{ transform:scale(1) translateY(0); opacity:1; pointer-events:auto; }
+@media (prefers-reduced-motion: reduce){ .chatbot-panel{ transition:opacity .15s ease; transform:none; } }
+
+.chatbot-header{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:16px 18px; border-bottom:1px solid var(--glass-border); flex-shrink:0;
+}
+.chatbot-header-title{ font-family:'Space Grotesk'; font-weight:600; font-size:14.5px; color:var(--ink); }
+.chatbot-header-sub{ margin-top:2px; font-size:11.5px; color:var(--dim); }
+.chatbot-close{
+  width:30px; height:30px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; color:var(--dim);
+  border:1px solid var(--glass-border);
+}
+.chatbot-close:hover{ color:var(--ink); }
+.chatbot-close .icon{ width:15px; height:15px; }
+
+.chatbot-log{
+  flex:1; overflow-y:auto; overflow-x:hidden; padding:16px 18px; display:flex; flex-direction:column; gap:12px;
+  overscroll-behavior:contain;
+}
+/* min-width:0 overrides the flex item default of min-width:auto — without
+   it, a reply containing one long unbroken run (a stray table row, a URL,
+   whatever the model returns) sets a min-content width wider than the
+   panel and pushes the bubble past its edge instead of wrapping.
+   overflow-wrap is the belt to that suspenders: even a single "word" with
+   no natural break point now wraps inside the bubble instead of
+   overflowing it. */
+.chatbot-msg{ max-width:84%; min-width:0; padding:10px 14px; border-radius:16px; font-size:13.5px; line-height:1.55; overflow-wrap:anywhere; }
+.chatbot-msg.bot{
+  align-self:flex-start; background:var(--fill-subtle); border:1px solid var(--glass-border);
+  color:var(--ink); border-bottom-left-radius:5px;
+}
+.chatbot-msg.user{
+  align-self:flex-end; background:var(--grad); color:#fff; border-bottom-right-radius:5px;
+}
+.chatbot-msg.error{ color:#F0736C; background:rgba(240,115,108,.1); border:1px solid rgba(240,115,108,.3); }
+/* structure for rendered bot-reply markdown (see renderMarkdownLite in
+   script.js) -- paragraphs/lists need their own spacing since this is
+   real block-level HTML now, not one plain text blob */
+.chatbot-msg.bot p{ margin:0; }
+.chatbot-msg.bot p + p{ margin-top:8px; }
+.chatbot-msg.bot ul, .chatbot-msg.bot ol{ margin:8px 0 0; padding-left:20px; display:flex; flex-direction:column; gap:4px; }
+.chatbot-msg.bot ul:first-child, .chatbot-msg.bot ol:first-child{ margin-top:0; }
+.chatbot-msg.bot li{ padding-left:2px; }
+.chatbot-msg.bot strong{ font-weight:600; color:var(--ink); }
+.chatbot-typing{ align-self:flex-start; display:flex; gap:4px; padding:12px 14px; }
+.chatbot-typing span{ width:6px; height:6px; border-radius:50%; background:var(--dimmer); animation:chatbotTypingDot 1.1s ease-in-out infinite; }
+.chatbot-typing span:nth-child(2){ animation-delay:.15s; }
+.chatbot-typing span:nth-child(3){ animation-delay:.3s; }
+@keyframes chatbotTypingDot{ 0%,60%,100%{ opacity:.3; transform:translateY(0); } 30%{ opacity:1; transform:translateY(-3px); } }
+
+.chatbot-inputrow{
+  display:flex; align-items:flex-end; gap:8px; padding:12px 14px;
+  border-top:1px solid var(--glass-border); flex-shrink:0;
+}
+.chatbot-input{
+  flex:1; resize:none; max-height:96px; padding:10px 12px; border-radius:12px;
+  font-size:13.5px; font-family:inherit; color:var(--ink);
+  background:var(--fill-subtle); border:1px solid var(--glass-border); outline:none;
+}
+.chatbot-input:focus{ border-color:var(--violet); }
+/* Dark mode's default UA placeholder color reads as near-invisible
+   against this translucent glass background — pin it to a token that's
+   legible in both themes instead of leaving it to the browser default. */
+.chatbot-input::placeholder{ color:var(--dim); opacity:1; }
+/* A textarea that grows past one line shows a scrollbar — on Windows'
+   classic (non-overlay) scrollbar rendering that includes clickable
+   up/down arrow buttons at each end, same as the site's own
+   scrollbar override below elsewhere. Restyling it as a thin custom
+   scrollbar replaces that rendering entirely, so the arrow buttons
+   never appear. */
+.chatbot-input::-webkit-scrollbar{ width:6px; }
+.chatbot-input::-webkit-scrollbar-track{ background:transparent; }
+.chatbot-input::-webkit-scrollbar-thumb{ background:var(--glass-border-strong); border-radius:10px; }
+.chatbot-log::-webkit-scrollbar{ width:6px; }
+.chatbot-log::-webkit-scrollbar-track{ background:transparent; }
+.chatbot-log::-webkit-scrollbar-thumb{ background:var(--glass-border-strong); border-radius:10px; }
+.chatbot-send{
+  width:38px; height:38px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; color:#fff;
+  background:var(--grad); box-shadow:0 0 20px -4px rgba(139,92,246,.55);
+}
+.chatbot-send:disabled{ opacity:.5; }
+.chatbot-send .icon{ width:16px; height:16px; }
+
+@media (max-width:480px){
+  .chatbot-launcher{ right:16px; bottom:16px; width:64px; height:64px; }
+  .chatbot-panel{ right:16px; bottom:92px; }
+}
+
+/* ============================================================
+   EYE-FOLLOW BUTTON — ported from the requested Framer "Eye Follow
+   Button" component. That component is otherwise deeply wired into
+   Framer's own runtime (Link, variants, locale, scoped containers),
+   none of which exists outside a published Framer site, so it isn't
+   portable as-is. The actual reusable idea — two eyes whose pupils
+   track the cursor — lives in a nested sub-component with no such
+   dependency, so that's what's ported here as plain CSS/JS onto the
+   site's existing gradient button, the same way the chatbot ghost's
+   eye-tracking already works elsewhere on this page.
+   ============================================================ */
+.eye-btn{ position:relative; }
+.eye-btn .btn-eyes{ display:inline-flex; gap:5px; }
+.eye-btn .eye{
+  width:14px; height:14px; border-radius:50%; background:#fff; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.eye-btn .pupil{
+  width:6px; height:6px; border-radius:50%; background:#1A1025;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* ============================================================
+   ARCADE — retro canvas shooter, ported from the requested Framer
+   "Space Shooter" component. Its only Framer-specific imports are
+   addPropertyControls/ControlType, which just feed Framer's own
+   editor panel — the game itself is plain React state + canvas 2D
+   calls, so the mechanics port straight to vanilla JS/canvas. The
+   canvas is a fixed dark "screen" in both themes, the way an embedded
+   video would be — only the frame around it (title, glass panel, HUD
+   chrome) follows the site's light/dark palette.
+   ============================================================ */
+.arcade-panel{ margin-top:8px; padding:20px; display:flex; flex-direction:column; gap:14px; align-items:center; }
+.arcade-frame{
+  position:relative; width:100%; max-width:640px; aspect-ratio:4/3;
+  border-radius:14px; overflow:hidden; background:#05060B;
+  border:1px solid var(--glass-border-strong);
+}
+.arcade-frame canvas{ width:100%; height:100%; display:block; image-rendering:pixelated; touch-action:none; }
+.arcade-frame canvas:focus-visible{ outline:2px solid var(--violet); outline-offset:-3px; }
+.arcade-hud{
+  position:absolute; top:12px; left:14px; right:14px; z-index:1;
+  display:flex; justify-content:space-between; gap:10px;
+  font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:.04em;
+  color:#F2F1ED; text-shadow:0 1px 3px rgba(0,0,0,.6); pointer-events:none;
+}
+.arcade-hud-right{ display:flex; align-items:center; gap:10px; pointer-events:auto; }
+.arcade-hud .arcade-hint{ color:#9AA1AE; }
+.arcade-controls{ display:flex; gap:6px; }
+.arcade-ctrl-btn{
+  width:22px; height:22px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.22); color:#F2F1ED;
+}
+.arcade-ctrl-btn:hover{ background:rgba(255,255,255,.22); }
+.arcade-ctrl-btn .icon{ width:11px; height:11px; }
+.arcade-ctrl-btn .icon-play{ display:none; }
+.arcade-ctrl-btn.is-paused .icon-pause{ display:none; }
+.arcade-ctrl-btn.is-paused .icon-play{ display:block; }
+.arcade-overlay{
+  position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center;
+  text-align:center; padding:20px; background:rgba(5,6,11,.84);
+  transition:opacity .2s ease; opacity:1;
+}
+.arcade-overlay.hide{ opacity:0; pointer-events:none; }
+.arcade-overlay-inner{ display:flex; flex-direction:column; align-items:center; gap:14px; max-width:320px; }
+.arcade-overlay-title{ font-family:'Space Grotesk'; font-weight:700; font-size:20px; color:#F2F1ED; letter-spacing:.02em; }
+.arcade-overlay-inner p{ font-size:12.5px; line-height:1.6; color:#9AA1AE; }
+
+/* ============================================================
+   FOCUS REVEAL (phone number) — ported from the requested Framer
+   "FocusReveal" component, simplified to how it's actually used here:
+   the whole number sits blurred at rest and comes into focus on
+   hover/focus/touch, matching this component's own core mechanic
+   (blur ↔ sharp) rather than its auto-cycling-per-word mode.
+   Root-caused and confirmed in isolation: when a parent has
+   backdrop-filter (as .btn-ghost does, for the glass look), a
+   descendant's own conditionally-applied `filter` value silently
+   fails to update — Chromium folds the child into the parent's
+   backdrop-filter compositing layer and never re-promotes it when
+   only the child's filter changes. `will-change:filter` forces the
+   child onto its own layer, which fixes it. Driven by a JS class
+   (see script.js) rather than plain CSS :hover so keyboard focus and
+   touch (no hover state) are covered the same way.
+   ============================================================ */
+.phone-blur{ filter:blur(5px); transition:filter .3s ease; will-change:filter; }
+.btn-ghost.phone-revealed .phone-blur{ filter:blur(0); }
