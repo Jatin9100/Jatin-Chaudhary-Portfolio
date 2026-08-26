@@ -13,7 +13,7 @@ const CONTACT_EMAIL = "jatinchaudhary910official@gmail.com";
    "not configured yet" message instead of calling anything. The
    Gemini API key itself must never go here — it lives only in that
    Apps Script project's Script Properties. */
-const CHATBOT_ENDPOINT = ""; // e.g. "https://script.google.com/macros/s/XXXX/exec"
+const CHATBOT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyQoyPUgCwSu--vvKokXIYow-yAFwyx7tOBPu4vG-X2fQBLgkwf-8ZnM70HjcDN-7BI/exec";
 
 /* ============================================================
    DATA — everything preserved from the original site content.

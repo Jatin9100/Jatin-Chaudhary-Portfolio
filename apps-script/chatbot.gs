@@ -31,7 +31,7 @@
    edits to an existing deployment's URL.
    ============================================================ */
 
-const GEMINI_MODEL = "gemini-2.0-flash"; // fast + inexpensive; plenty for short Q&A
+const GEMINI_MODEL = "gemini-3.7-flash"; // gemini-2.0-flash was retired June 2026 -- keep this current
 const MAX_HISTORY_TURNS = 6;             // caps context sent per request (cost/latency)
 const MAX_MESSAGE_CHARS = 2000;
 
