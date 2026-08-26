@@ -1578,3 +1578,336 @@ updateNavSpy();
   }, { passive: true });
 })();
 
+/* ============================================================
+   EYE-FOLLOW BUTTON — ported from the requested Framer "Eye Follow
+   Button" component (see the CSS block of the same name for why only
+   the eye-tracking itself, not the whole component, was portable).
+   Pupils track the pointer the same way the chatbot ghost's eyes do:
+   angle + clamped distance from the element's own center.
+   ============================================================ */
+(function eyeFollowButton(){
+  if (prefersReducedMotion) return;
+  const btn = document.getElementById("contactBtnFooter");
+  if (!btn) return;
+  const pupils = btn.querySelectorAll(".pupil");
+  if (!pupils.length) return;
+  const RANGE = 4; // max px a pupil can travel from center
+  const RADIUS = 140; // px from the button's center for full deflection
+
+  window.addEventListener("pointermove", e => {
+    const rect = btn.getBoundingClientRect();
+    const dx = e.clientX - (rect.left + rect.width / 2);
+    const dy = e.clientY - (rect.top + rect.height / 2);
+    const dist = Math.min(Math.hypot(dx, dy), RADIUS);
+    const angle = Math.atan2(dy, dx);
+    const x = Math.cos(angle) * (dist / RADIUS) * RANGE;
+    const y = Math.sin(angle) * (dist / RADIUS) * RANGE;
+    pupils.forEach(p => { p.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`; });
+  }, { passive: true });
+})();
+
+/* ============================================================
+   FOCUS REVEAL (phone number) — see the CSS block of the same name.
+   Toggles the reveal via a JS class instead of CSS :hover, which
+   Chromium doesn't reliably apply here since the ancestor also has
+   its own backdrop-filter (a known filter/backdrop-filter repaint
+   quirk on nested elements). mouseenter/leave covers mouse, focus/
+   blur covers keyboard, touchstart/end covers touch (no hover state).
+   ============================================================ */
+(function focusRevealPhone(){
+  const phoneText = document.querySelector(".phone-blur");
+  const link = phoneText && phoneText.closest("a");
+  if (!link) return;
+  const reveal = () => link.classList.add("phone-revealed");
+  const hide = () => link.classList.remove("phone-revealed");
+  link.addEventListener("mouseenter", reveal);
+  link.addEventListener("mouseleave", hide);
+  link.addEventListener("focus", reveal);
+  link.addEventListener("blur", hide);
+  link.addEventListener("touchstart", reveal, { passive: true });
+  link.addEventListener("touchend", hide);
+})();
+
+/* ============================================================
+   ARCADE — retro canvas shooter, ported from the requested Framer
+   "Space Shooter" component. Its only Framer-specific imports are
+   addPropertyControls/ControlType, which just feed Framer's own
+   editor panel — the actual game is plain React state + canvas 2D
+   calls, so the rules below (800x600 world, pixel-snapped drawing,
+   200ms auto-fire, 1s enemy spawns, AABB collision, 0.5%/frame enemy
+   fire chance) are ported 1:1. What changed for this site: score and
+   game-over text moved off the canvas into themed DOM elements (so
+   they follow light/dark like the rest of the page — the canvas
+   itself stays a fixed dark "screen" the way an embedded video would),
+   touch input is a single pointer-drag-to-follow instead of the
+   original's quadrant-to-arrow-key mapping, and the palette was
+   reskinned to this site's violet/cyan/pink accents.
+   ============================================================ */
+(function spaceShooterArcade(){
+  const canvas = document.getElementById("arcadeCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const scoreEl = document.getElementById("arcadeScore");
+  const overlay = document.getElementById("arcadeOverlay");
+  const overlayTitle = document.getElementById("arcadeOverlayTitle");
+  const overlayMsg = document.getElementById("arcadeOverlayMsg");
+  const startBtn = document.getElementById("arcadeStartBtn");
+  const controlsWrap = document.getElementById("arcadeControls");
+  const pauseBtn = document.getElementById("arcadePauseBtn");
+  const stopBtn = document.getElementById("arcadeStopBtn");
+
+  const CANVAS_WIDTH = 800, CANVAS_HEIGHT = 600, PIXEL_SIZE = 4;
+  const PLAYER_SIZE = 32, ENEMY_SIZE = 24;
+  const COLORS = {
+    background: "#05060B",
+    player: "#22D3EE",
+    bullet: "#A3E635",
+    enemy: "#EC4899",
+    enemyBullet: "#8B5CF6",
+    explosion: "#F2F1ED",
+    star: "rgba(242,241,237,.85)",
+  };
+
+  let score = 0;
+  let state = freshState();
+  const keys = new Set();
+  let dragTarget = null;
+  let phase = "idle"; // "idle" | "playing" | "paused" | "over"
+  let offscreen = true;
+  let rafId = null;
+  let overlayAction = startGame;
+
+  function freshState() {
+    return {
+      player: { x: 400, y: 500, width: PLAYER_SIZE, height: PLAYER_SIZE, speed: 5 },
+      bullets: [], enemyBullets: [], enemies: [], explosions: [],
+      lastEnemySpawn: 0, lastBulletFire: 0, gameOver: false,
+    };
+  }
+
+  function drawPixelRect(x, y, w, h, color) {
+    ctx.fillStyle = color;
+    const pw = Math.floor(w / PIXEL_SIZE) * PIXEL_SIZE, ph = Math.floor(h / PIXEL_SIZE) * PIXEL_SIZE;
+    ctx.fillRect(Math.floor(x / PIXEL_SIZE) * PIXEL_SIZE, Math.floor(y / PIXEL_SIZE) * PIXEL_SIZE, pw, ph);
+  }
+  function drawPlayer(p) {
+    const x = Math.floor(p.x / PIXEL_SIZE) * PIXEL_SIZE, y = Math.floor(p.y / PIXEL_SIZE) * PIXEL_SIZE;
+    const s = p.width / 32;
+    ctx.fillStyle = COLORS.player;
+    ctx.fillRect(x + 12 * s, y, 8 * s, 24 * s);
+    ctx.fillRect(x, y + 16 * s, 32 * s, 8 * s);
+    ctx.fillRect(x + 8 * s, y + 4 * s, 16 * s, 8 * s);
+    ctx.fillRect(x + 4 * s, y + 24 * s, 8 * s, 8 * s);
+    ctx.fillRect(x + 20 * s, y + 24 * s, 8 * s, 8 * s);
+  }
+  function drawEnemy(en) {
+    const x = Math.floor(en.x / PIXEL_SIZE) * PIXEL_SIZE, y = Math.floor(en.y / PIXEL_SIZE) * PIXEL_SIZE;
+    const s = en.width / 24;
+    ctx.fillStyle = COLORS.enemy;
+    ctx.fillRect(x + 10 * s, y, 4 * s, 12 * s);
+    ctx.fillRect(x + 4 * s, y + 8 * s, 16 * s, 4 * s);
+    ctx.fillRect(x + 8 * s, y + 2 * s, 8 * s, 4 * s);
+    ctx.fillRect(x + 6 * s, y + 12 * s, 4 * s, 4 * s);
+    ctx.fillRect(x + 14 * s, y + 12 * s, 4 * s, 4 * s);
+  }
+  function drawExplosion(ex) {
+    const x = Math.floor(ex.x / PIXEL_SIZE) * PIXEL_SIZE, y = Math.floor(ex.y / PIXEL_SIZE) * PIXEL_SIZE;
+    const size = ex.frame * 4;
+    ctx.fillStyle = COLORS.explosion;
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+      if (Math.random() > 0.3) ctx.fillRect(x + i * 8 - size / 2, y + j * 8 - size / 2, 8, 8);
+    }
+  }
+  function checkCollision(a, b) {
+    return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+  }
+  function spawnEnemy() {
+    return { x: Math.random() * (CANVAS_WIDTH - ENEMY_SIZE), y: -ENEMY_SIZE, width: ENEMY_SIZE, height: ENEMY_SIZE, speed: 2 + Math.random() * 3, active: true, type: Math.floor(Math.random() * 2) };
+  }
+  function fireBullet(p) { return { x: p.x + p.width / 2 - 2, y: p.y, width: 4, height: 12, speed: 8, active: true }; }
+  function fireEnemyBullet(en) { return { x: en.x + en.width / 2 - 2, y: en.y + en.height, width: 4, height: 8, speed: 4, active: true }; }
+
+  function endGame() {
+    if (phase === "over") return;
+    phase = "over";
+    state.gameOver = true;
+    state.explosions.push({ x: state.player.x + state.player.width / 2, y: state.player.y + state.player.height / 2, frame: 0 });
+    stopLoop();
+    overlayTitle.textContent = "GAME OVER";
+    overlayMsg.textContent = `Final score: ${score} — press any key, tap, or hit restart.`;
+    overlayAction = startGame;
+    startBtn.textContent = "Restart";
+    overlay.classList.remove("hide");
+    updateControlsVisibility();
+  }
+
+  function updateGame() {
+    if (state.gameOver) return;
+    const now = Date.now();
+    const p = state.player;
+
+    if (keys.has("ArrowLeft") && p.x > 0) p.x -= p.speed;
+    if (keys.has("ArrowRight") && p.x < CANVAS_WIDTH - p.width) p.x += p.speed;
+    if (keys.has("ArrowUp") && p.y > 0) p.y -= p.speed;
+    if (keys.has("ArrowDown") && p.y < CANVAS_HEIGHT - p.height) p.y += p.speed;
+
+    if (dragTarget) {
+      const dx = (dragTarget.x - p.width / 2) - p.x, dy = (dragTarget.y - p.height / 2) - p.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 5) { p.x += (dx / dist) * p.speed; p.y += (dy / dist) * p.speed; }
+      p.x = Math.max(0, Math.min(CANVAS_WIDTH - p.width, p.x));
+      p.y = Math.max(0, Math.min(CANVAS_HEIGHT - p.height, p.y));
+    }
+
+    if (now - state.lastBulletFire > 200) { state.bullets.push(fireBullet(p)); state.lastBulletFire = now; }
+    state.bullets = state.bullets.filter(b => { b.y -= b.speed; return b.y > -b.height && b.active; });
+    state.enemyBullets = state.enemyBullets.filter(b => { b.y += b.speed; return b.y < CANVAS_HEIGHT + b.height && b.active; });
+
+    if (now - state.lastEnemySpawn > 1000) { state.enemies.push(spawnEnemy()); state.lastEnemySpawn = now; }
+    state.enemies = state.enemies.filter(en => {
+      en.y += en.speed;
+      if (Math.random() < 0.005) state.enemyBullets.push(fireEnemyBullet(en));
+      return en.y < CANVAS_HEIGHT + en.height && en.active;
+    });
+
+    state.bullets.forEach(b => state.enemies.forEach(en => {
+      if (b.active && en.active && checkCollision(b, en)) {
+        b.active = false; en.active = false;
+        state.explosions.push({ x: en.x + en.width / 2, y: en.y + en.height / 2, frame: 0 });
+        score += (en.type + 1) * 10;
+        scoreEl.textContent = `SCORE ${score}`;
+      }
+    }));
+    state.enemies.forEach(en => { if (en.active && checkCollision(en, p)) endGame(); });
+    state.enemyBullets.forEach(b => { if (b.active && checkCollision(b, p)) endGame(); });
+
+    state.bullets = state.bullets.filter(b => b.active);
+    state.enemyBullets = state.enemyBullets.filter(b => b.active);
+    state.enemies = state.enemies.filter(en => en.active);
+    state.explosions = state.explosions.filter(ex => { ex.frame++; return ex.frame < 10; });
+  }
+
+  function drawStars(t) {
+    ctx.fillStyle = COLORS.star;
+    for (let i = 0; i < 50; i++) {
+      const x = (i * 137 + Math.sin(i * 2.3) * 100) % CANVAS_WIDTH;
+      const y = (i * 197 + Math.cos(i * 1.7) * 150 + t * 0.1) % CANVAS_HEIGHT;
+      const sx = Math.floor(x / PIXEL_SIZE) * PIXEL_SIZE, sy = Math.floor(y / PIXEL_SIZE) * PIXEL_SIZE;
+      const size = 2 * PIXEL_SIZE;
+      ctx.fillRect(sx, sy - size, size, size * 3);
+      ctx.fillRect(sx - size, sy, size * 3, size);
+    }
+  }
+
+  function render() {
+    ctx.fillStyle = COLORS.background;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    drawStars(Date.now());
+    if (!state.gameOver) drawPlayer(state.player);
+    state.bullets.forEach(b => drawPixelRect(b.x, b.y, b.width, b.height, COLORS.bullet));
+    state.enemyBullets.forEach(b => drawPixelRect(b.x, b.y, b.width, b.height, COLORS.enemyBullet));
+    state.enemies.forEach(drawEnemy);
+    state.explosions.forEach(drawExplosion);
+  }
+
+  function loop() {
+    updateGame();
+    render();
+    rafId = requestAnimationFrame(loop);
+  }
+  function stopLoop() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+  function ensureLoop() {
+    if (!rafId && phase === "playing" && !offscreen) loop();
+  }
+
+  function updateControlsVisibility() {
+    const active = phase === "playing" || phase === "paused";
+    controlsWrap.hidden = !active;
+    pauseBtn.classList.toggle("is-paused", phase === "paused");
+    pauseBtn.setAttribute("aria-label", phase === "paused" ? "Resume" : "Pause");
+  }
+
+  function startGame() {
+    score = 0;
+    scoreEl.textContent = "SCORE 0";
+    state = freshState();
+    phase = "playing";
+    overlay.classList.add("hide");
+    updateControlsVisibility();
+    canvas.focus();
+    ensureLoop();
+  }
+  function pauseGame() {
+    if (phase !== "playing") return;
+    phase = "paused";
+    stopLoop();
+    overlayTitle.textContent = "PAUSED";
+    overlayMsg.textContent = "Take a beat — resume whenever you're ready.";
+    overlayAction = resumeGame;
+    startBtn.textContent = "Resume";
+    overlay.classList.remove("hide");
+    updateControlsVisibility();
+  }
+  function resumeGame() {
+    if (phase !== "paused") return;
+    phase = "playing";
+    overlay.classList.add("hide");
+    updateControlsVisibility();
+    canvas.focus();
+    ensureLoop();
+  }
+  function stopGame() {
+    if (phase === "idle") return;
+    phase = "idle";
+    stopLoop();
+    score = 0;
+    scoreEl.textContent = "SCORE 0";
+    state = freshState();
+    render();
+    overlayTitle.textContent = "SPACE SHOOTER";
+    overlayMsg.textContent = "Arrow keys or drag to move — your ship fires on its own. Survive as long as you can.";
+    overlayAction = startGame;
+    startBtn.textContent = "Play";
+    overlay.classList.remove("hide");
+    updateControlsVisibility();
+  }
+
+  startBtn.addEventListener("click", () => overlayAction());
+  pauseBtn.addEventListener("click", () => { if (phase === "paused") resumeGame(); else pauseGame(); });
+  stopBtn.addEventListener("click", stopGame);
+
+  canvas.addEventListener("keydown", e => {
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) { e.preventDefault(); keys.add(e.key); }
+    if (phase === "over") startGame();
+  });
+  canvas.addEventListener("keyup", e => keys.delete(e.key));
+
+  function canvasPoint(e) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: (e.clientX - rect.left) * (CANVAS_WIDTH / rect.width), y: (e.clientY - rect.top) * (CANVAS_HEIGHT / rect.height) };
+  }
+  canvas.addEventListener("pointerdown", e => {
+    canvas.focus();
+    if (phase === "over") { startGame(); return; }
+    if (phase !== "playing") return;
+    canvas.setPointerCapture(e.pointerId);
+    dragTarget = canvasPoint(e);
+  });
+  canvas.addEventListener("pointermove", e => { if (dragTarget) dragTarget = canvasPoint(e); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(ev => canvas.addEventListener(ev, () => { dragTarget = null; }));
+
+  // pause the loop off-screen to save CPU, resume when it's back in view
+  // (this is separate from the user-facing Pause button — going offscreen
+  // never changes `phase`, so coming back into view resumes automatically
+  // only if the player hadn't paused it themselves)
+  new IntersectionObserver(entries => {
+    offscreen = !entries[0].isIntersecting;
+    if (offscreen) stopLoop(); else ensureLoop();
+  }, { threshold: 0 }).observe(canvas);
+
+  updateControlsVisibility();
+  render(); // one idle frame behind the "Play" overlay before the game starts
+})();
+

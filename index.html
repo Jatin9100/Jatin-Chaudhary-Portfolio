@@ -140,9 +140,18 @@
   <h2 class="reveal">Let&rsquo;s build something<br>worth measuring.</h2>
   <p class="sub reveal reveal-delay-1">Open to Product Manager &amp; Senior PM conversations.</p>
   <div class="footer-actions reveal reveal-delay-2">
-    <button class="btn btn-primary" id="contactBtnFooter">Send a message</button>
+    <button class="btn btn-primary eye-btn" id="contactBtnFooter">
+      <span class="btn-eyes" aria-hidden="true">
+        <span class="eye"><span class="pupil"></span></span>
+        <span class="eye"><span class="pupil"></span></span>
+      </span>
+      Send a message
+    </button>
     <a class="btn btn-ghost" href="https://linkedin.com/in/jatin-chaudhary" target="_blank" rel="noopener"><i data-lucide="link" class="icon"></i>LinkedIn</a>
-    <a class="btn btn-ghost" href="tel:+917977916549"><i data-lucide="phone" class="icon"></i>+91 79779 16549</a>
+    <a class="btn btn-ghost" href="tel:+917977916549">
+      <i data-lucide="phone" class="icon"></i>
+      <span class="phone-blur">+91 79779 16549</span>
+    </a>
     <a class="btn btn-ghost" href="resume.pdf" download="Jatin_Chaudhary_Resume.pdf"><i data-lucide="download" class="icon"></i>Grab my Resume</a>
   </div>
   <div class="footer-email reveal reveal-delay-2">
@@ -156,6 +165,39 @@
     <span>Jatin Chaudhary — Product Manager, CTO Office</span>
   </div>
 </footer>
+
+<section id="arcade">
+  <div class="section-tag reveal">Just For Fun</div>
+  <h2 class="section-title reveal reveal-delay-1">Made it this far? Take a break.</h2>
+  <p class="section-desc reveal reveal-delay-2">Your ship fires on its own — just steer and dodge. Arrow keys or a drag will do it. Chase a high score, or just enjoy a few seconds of not thinking about roadmaps.</p>
+  <div class="glass arcade-panel reveal reveal-delay-2">
+    <div class="arcade-frame">
+      <canvas id="arcadeCanvas" width="800" height="600" tabindex="0" aria-label="Space Shooter mini-game — arrow keys or drag to move, fires automatically"></canvas>
+      <div class="arcade-hud">
+        <span id="arcadeScore">SCORE 0</span>
+        <div class="arcade-hud-right">
+          <div class="arcade-controls" id="arcadeControls" hidden>
+            <button class="arcade-ctrl-btn" id="arcadePauseBtn" type="button" aria-label="Pause">
+              <i data-lucide="pause" class="icon icon-pause"></i>
+              <i data-lucide="play" class="icon icon-play"></i>
+            </button>
+            <button class="arcade-ctrl-btn" id="arcadeStopBtn" type="button" aria-label="Stop">
+              <i data-lucide="square" class="icon"></i>
+            </button>
+          </div>
+          <span class="arcade-hint">Arrow keys / drag</span>
+        </div>
+      </div>
+      <div class="arcade-overlay" id="arcadeOverlay">
+        <div class="arcade-overlay-inner">
+          <div class="arcade-overlay-title" id="arcadeOverlayTitle">SPACE SHOOTER</div>
+          <p id="arcadeOverlayMsg">Arrow keys or drag to move — your ship fires on its own. Survive as long as you can.</p>
+          <button class="btn btn-primary" id="arcadeStartBtn" type="button">Play</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- Case study modal -->
 <div class="modal-overlay" id="caseModalOverlay">
