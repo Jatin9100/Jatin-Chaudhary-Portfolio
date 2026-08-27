@@ -488,11 +488,23 @@ window.addEventListener("scroll", () => {
   };
 
   /* horizontal grid lines, 4 bands */
+  const gridYs = [];
   let gridLines = "";
   for (let g = 0; g <= 4; g++) {
     const gy = padT + (plotH / 4) * g;
+    gridYs.push(gy);
     gridLines += `<line class="growth-grid-line" x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - padR}" y2="${gy.toFixed(1)}" />`;
   }
+
+  /* value labels sit a fixed offset above their point, but for low/zero
+     values that offset can coincidentally land right on a grid line (or,
+     for the top-most point, poke above the plot area entirely) — nudge
+     clear of both so the label is always legible, whatever the numbers. */
+  const labelYAt = cy => {
+    let y = Math.max(cy - 14, 10);
+    gridYs.forEach(gy => { if (Math.abs(y - gy) < 8) y = y < gy ? gy - 8 : gy + 8; });
+    return y;
+  };
 
   const pts = YEARLY_GROWTH.map((d, i) => `${xAt(i).toFixed(1)},${yAt(d.annualL).toFixed(1)}`);
   /* extruded shadow ribbon under the value line — reads as depth on the tilted plane */
@@ -520,7 +532,7 @@ window.addEventListener("scroll", () => {
     </circle>`;
     yearLabels += `<text class="growth-year-label" x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="${anchor}">${d.role}</text>`;
     const valText = d.annualL >= 100 ? `₹${(d.annualL / 100).toFixed(2)}Cr+` : d.annualL > 0 ? `₹${d.annualL}L` : "—";
-    valLabels += `<text class="growth-val-label" x="${cx.toFixed(1)}" y="${(cy - 14).toFixed(1)}" text-anchor="${anchor}">${valText}</text>`;
+    valLabels += `<text class="growth-val-label" x="${cx.toFixed(1)}" y="${labelYAt(cy).toFixed(1)}" text-anchor="${anchor}">${valText}</text>`;
   });
 
   svg.innerHTML = `
