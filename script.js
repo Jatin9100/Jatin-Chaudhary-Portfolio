@@ -1028,82 +1028,49 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
 })();
 
 /* ============================================================
-   PORTFOLIO CHATBOT, a ghost mascot launcher (ported from the
-   requested Framer "Interactive Ghost" component's math: wavy-cloth
-   body path generation, mood-based facial-expression targets, cursor
-   eye-tracking, float/sway physics, and its default lime-green colors,
-   kept exact per request rather than reskinned to the site palette)
-   wired to a real chat panel. The source component's own "chat" was just a static
-   quote bubble with no backend; the actual conversation here calls
-   the Gemini proxy in apps-script/chatbot.gs (see CHATBOT_ENDPOINT
-   above, the API key itself never touches this file or the repo).
+   PORTFOLIO CHATBOT: an interactive ghost mascot as the launcher
+   and the chat-panel header logo, wired to the real chat panel.
+   The conversation itself (fetch, history, markdown rendering) is
+   unchanged and still calls the Gemini proxy in apps-script/chatbot.gs
+   via CHATBOT_ENDPOINT; this block only changes how it LOOKS and
+   BEHAVES.
 
-   Unlike the magic cursor / liquid name (purely decorative, fully
-   skipped under reduced-motion or on touch), this is a FUNCTIONAL
-   feature: it stays completely usable everywhere. Reduced-motion
-   trims only the idle animation layer (one static neutral frame
-   instead of the float/sway/blink loop); touch devices simply get no
-   eye-tracking (no continuous pointer to track), not a disabled bot.
+   The character is a vendored, dependency-free port of the Framer
+   "Interactive Ghost" component (assets/ghost/, original kept in
+   assets/ghost/vendor/). It is lazy-loaded once. Nothing is shown
+   while it loads, so there is never a button flash; a plain fallback
+   button appears only if it fails or takes more than ~8s.
 
-   Eye-tracking radius: the source component normalizes mouse position
-   relative to its OWN container's bounds, which works when that
-   container is hero-sized. Here it's a small 76px launcher button, so
-   literally porting that would mean the eyes only ever react within
-   a 76px box, barely noticeable. Tracking against a wider fixed
-   radius around the launcher's actual position instead, so cursor
-   movement across a meaningful part of the page is visible on the
-   ghost's eyes, the way the effect clearly reads in the source demo.
+   One ghost element persists for the whole session: it lives in the
+   corner launcher, and is moved into the panel header while the chat
+   is open (the launcher is unmounted then, so there is never a
+   second ghost).
    ============================================================ */
 (function portfolioChatbot(){
   const root = document.getElementById("chatbotRoot");
   if (!root) return;
 
-  const MOOD_STATES = {
-    neutral: { lEyeRot:0, rEyeRot:0, eyeScale:1, mouthW:10, mouthY:118, mouthCurveT:0, mouthCurveB:0, mouthOp:0, browY:86, browAngle:0, browCurve:0, browOp:0 },
-    happy:   { lEyeRot:0, rEyeRot:0, eyeScale:1, mouthW:22, mouthY:116, mouthCurveT:2, mouthCurveB:14, mouthOp:1, browY:78, browAngle:-5, browCurve:-4, browOp:1 },
-    sad:     { lEyeRot:-12, rEyeRot:12, eyeScale:.9, mouthW:16, mouthY:122, mouthCurveT:-6, mouthCurveB:-2, mouthOp:1, browY:84, browAngle:-12, browCurve:-2, browOp:1 },
-    anxious: { lEyeRot:0, rEyeRot:0, eyeScale:.8, mouthW:12, mouthY:120, mouthCurveT:-2, mouthCurveB:2, mouthOp:1, browY:80, browAngle:-4, browCurve:-1, browOp:1 },
-  };
-
-  const CX = 100, R = 70, BASE_Y = 170;
-  const VB_HEIGHT = Math.max(240, BASE_Y + 60);
-  const EYE_TRACK_RADIUS = 260; // px around the launcher's own center
+  const GHOST_SRC = "assets/ghost/ghost-character.js";
+  const GHOST_TIMEOUT_MS = 8000;
+  const DRAG_THRESHOLD = 6;      // px of travel below which a press is a click
+  const TRACK_RADIUS = 260;      // px around the ghost in which the eyes follow the cursor
+  const HOLD_ANGRY_MS = 1000;
+  const FLY_HOME_MS = 800;
+  const BUBBLE_MS = 7000;
+  const HAPPY_TINT = "#22c55e";
+  const ANGRY_TINT = "#ef4444";
+  const rmq = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const reduced = () => rmq.matches;
 
   root.innerHTML = `
-    <button class="chatbot-launcher" id="chatbotLauncher" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="chatbotPanel" aria-label="Chat with the portfolio assistant">
-      <svg viewBox="-150 -80 500 ${VB_HEIGHT + 120}">
-        <defs>
-          <linearGradient id="ghostFrontGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#eaff5e"/><stop offset="40%" stop-color="#a3e635"/><stop offset="100%" stop-color="#16a34a"/>
-          </linearGradient>
-          <linearGradient id="ghostBackGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#65a30d"/><stop offset="100%" stop-color="#14532d"/>
-          </linearGradient>
-          <filter id="ghostGlowBlur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="20"/></filter>
-          <filter id="ghostGlowBlur2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="34"/></filter>
-        </defs>
-        <g id="ghostGroup">
-          <ellipse cx="100" cy="${VB_HEIGHT / 2}" rx="90" ry="110" fill="#eaff5e" opacity=".3" filter="url(#ghostGlowBlur1)"></ellipse>
-          <ellipse cx="100" cy="${VB_HEIGHT / 2}" rx="130" ry="150" fill="#eaff5e" opacity=".2" filter="url(#ghostGlowBlur2)"></ellipse>
-          <path id="ghostBack" fill="url(#ghostBackGrad)"></path>
-          <path id="ghostFront" fill="url(#ghostFrontGrad)"></path>
-          <g id="ghostFace">
-            <g id="ghostBrows">
-              <path id="ghostBrowL" stroke="#1A1025" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
-              <path id="ghostBrowR" stroke="#1A1025" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
-            </g>
-            <ellipse id="ghostEyeL" cx="80" cy="100" fill="#1A1025"></ellipse>
-            <ellipse id="ghostEyeR" cx="120" cy="100" fill="#1A1025"></ellipse>
-            <path id="ghostMouth" fill="#1A1025"></path>
-          </g>
-        </g>
-      </svg>
-    </button>
-    <div class="glass chatbot-panel" id="chatbotPanel" role="dialog" aria-modal="false" aria-label="Chat about Jatin's portfolio">
+    <div class="glass chatbot-panel" id="chatbotPanel" role="dialog" aria-modal="false" aria-label="Chat about Jatin's portfolio" inert>
       <div class="chatbot-header">
-        <div>
-          <div class="chatbot-header-title">Ask about Jatin</div>
-          <div class="chatbot-header-sub">${CHATBOT_ENDPOINT ? "Roles, projects, impact. Ask away" : "Demo mode: proxy not connected yet"}</div>
+        <div class="chatbot-header-brand">
+          <span class="chatbot-header-logo" id="chatbotHeaderLogo" aria-hidden="true"></span>
+          <div>
+            <div class="chatbot-header-title">Ask about Jatin</div>
+            <div class="chatbot-header-sub">${CHATBOT_ENDPOINT ? "Roles, projects, impact. Ask away" : "Demo mode: proxy not connected yet"}</div>
+          </div>
         </div>
         <button class="chatbot-close" id="chatbotClose" type="button" aria-label="Close chat"><i data-lucide="x" class="icon"></i></button>
       </div>
@@ -1116,135 +1083,387 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
   `;
   lucide.createIcons();
 
-  const launcher = document.getElementById("chatbotLauncher");
   const panel = document.getElementById("chatbotPanel");
   const closeBtn = document.getElementById("chatbotClose");
+  const headerLogo = document.getElementById("chatbotHeaderLogo");
   const logEl = document.getElementById("chatbotLog");
   const inputEl = document.getElementById("chatbotInput");
   const sendBtn = document.getElementById("chatbotSend");
-  const ghostGroup = document.getElementById("ghostGroup");
-  const faceGroup = document.getElementById("ghostFace");
-  const browsGroup = document.getElementById("ghostBrows");
-  const backPathEl = document.getElementById("ghostBack");
-  const frontPathEl = document.getElementById("ghostFront");
-  const eyeL = document.getElementById("ghostEyeL");
-  const eyeR = document.getElementById("ghostEyeR");
-  const browL = document.getElementById("ghostBrowL");
-  const browR = document.getElementById("ghostBrowR");
-  const mouthPathEl = document.getElementById("ghostMouth");
 
-  let mood = "neutral";
-  const faceState = { ...MOOD_STATES.neutral };
-  const targetMouse = { x: 0, y: 0 };
-  const currentMouse = { x: 0, y: 0 };
-
-  function setMood(next) { mood = next; }
-
-  window.addEventListener("mousemove", e => {
-    const rect = launcher.getBoundingClientRect();
-    const lx = rect.left + rect.width / 2, ly = rect.top + rect.height / 2;
-    const dx = (e.clientX - lx) / EYE_TRACK_RADIUS, dy = (e.clientY - ly) / EYE_TRACK_RADIUS;
-    targetMouse.x = Math.max(-1, Math.min(1, dx));
-    targetMouse.y = Math.max(-1, Math.min(1, dy));
-  }, { passive: true });
-
-  function bodyPaths(time) {
-    const wind = time * 0.002;
-    const waveY = (x, isBack) => {
-      const nx = (x - CX) / R;
-      const drape = Math.cos(nx * Math.PI * 0.5) * 12;
-      const offset = isBack ? Math.PI * 0.8 : 0;
-      const wave1 = Math.sin(nx * 3.14 - wind + offset) * 8;
-      const wave2 = Math.sin(nx * 6.28 - wind * 1.5 + offset) * 3;
-      const flutter = Math.sin(nx * 12 - wind * 3) * (Math.abs(nx) * 2);
-      return BASE_Y + (isBack ? -drape * 0.5 : drape) + wave1 + wave2 + flutter;
-    };
-    const N = 60;
-    let f = `M ${CX - R} 100 A ${R} ${R} 0 0 1 ${CX + R} 100 `;
-    for (let i = 0; i <= N; i++) { const x = CX + R - (i / N) * (2 * R); f += `L ${x} ${waveY(x, false)} `; }
-    f += "Z";
-    let b = `M ${CX - R} 100 L ${CX + R} 100 `;
-    for (let i = 0; i <= N; i++) { const x = CX - R + (i / N) * (2 * R); b += `L ${x} ${waveY(x, true)} `; }
-    b += "Z";
-    return { front: f, back: b };
-  }
-
-  function renderGhost(time) {
-    const { front, back } = bodyPaths(time);
-    frontPathEl.setAttribute("d", front);
-    backPathEl.setAttribute("d", back);
-
-    let blinkScale = 1;
-    const blinkCycle = time % 4000;
-    if (blinkCycle < 150) blinkScale = Math.max(0.1, 1 - Math.sin((blinkCycle / 150) * Math.PI));
-
-    const eyeOffsetX = currentMouse.x * 16, eyeOffsetY = currentMouse.y * 16;
-    faceGroup.style.transform = `translate(${eyeOffsetX}px, ${eyeOffsetY}px)`;
-
-    eyeL.setAttribute("rx", 8 * faceState.eyeScale); eyeL.setAttribute("ry", 16 * faceState.eyeScale);
-    eyeL.style.transformOrigin = "80px 100px"; eyeL.style.transform = `rotate(${faceState.lEyeRot}deg) scaleY(${blinkScale})`;
-    eyeR.setAttribute("rx", 8 * faceState.eyeScale); eyeR.setAttribute("ry", 16 * faceState.eyeScale);
-    eyeR.style.transformOrigin = "120px 100px"; eyeR.style.transform = `rotate(${faceState.rEyeRot}deg) scaleY(${blinkScale})`;
-
-    browL.setAttribute("d", `M 70 ${faceState.browY} Q 80 ${faceState.browY + faceState.browCurve} 90 ${faceState.browY}`);
-    browR.setAttribute("d", `M 110 ${faceState.browY} Q 120 ${faceState.browY + faceState.browCurve} 130 ${faceState.browY}`);
-    browL.style.transformOrigin = `80px ${faceState.browY}px`; browL.style.transform = `rotate(${faceState.browAngle}deg)`;
-    browR.style.transformOrigin = `120px ${faceState.browY}px`; browR.style.transform = `rotate(${-faceState.browAngle}deg)`;
-    browsGroup.style.opacity = faceState.browOp;
-
-    mouthPathEl.setAttribute("d", `M ${100 - faceState.mouthW / 2} ${faceState.mouthY} Q 100 ${faceState.mouthY + faceState.mouthCurveT} ${100 + faceState.mouthW / 2} ${faceState.mouthY} Q 100 ${faceState.mouthY + faceState.mouthCurveB} ${100 - faceState.mouthW / 2} ${faceState.mouthY} Z`);
-    mouthPathEl.style.opacity = faceState.mouthOp;
-
-    const swayX = Math.cos(time * 0.0015) * 8;
-    const floatY = Math.sin(time * 0.002) * 12;
-    const bodyRotation = currentMouse.x * 8 + Math.sin(time * 0.001) * 3;
-    ghostGroup.style.transformOrigin = `100px ${VB_HEIGHT / 2}px`;
-    ghostGroup.style.transform = `translate(${swayX}px, ${floatY}px) rotate(${bodyRotation}deg)`;
-  }
-
-  if (prefersReducedMotion) {
-    renderGhost(0); // one static neutral frame, no ongoing loop
-  } else {
-    let visible = true;
-    new IntersectionObserver(entries => { visible = entries[0].isIntersecting; }, { threshold: 0 }).observe(launcher);
-    const startTime = performance.now();
-    function loop(now) {
-      if (visible) {
-        currentMouse.x += (targetMouse.x - currentMouse.x) * 0.08;
-        currentMouse.y += (targetMouse.y - currentMouse.y) * 0.08;
-        const target = MOOD_STATES[mood] || MOOD_STATES.neutral;
-        for (const key in target) faceState[key] += (target[key] - faceState[key]) * 0.12;
-        renderGhost(now - startTime);
-      }
-      requestAnimationFrame(loop);
-    }
-    requestAnimationFrame(loop);
-  }
-
-  /* ---- panel open/close ---- */
+  let ghost = null;          // GhostCharacter instance (null until loaded / if fallback)
+  let host = null;           // fixed 120px launcher host (the "launcher")
+  let launcher = null;       // the <button> inside it
+  let stage = null;          // slot the ghost lives in while in the corner
+  let fx = null;             // wrapper that hops / shakes / trembles
+  let bubbleEl = null;
   let panelOpen = false;
+  let launcherReady = false;
+
+  /* ------------------------------------------------------------
+     Theme: ghost colours come from the site's own tokens, never the
+     component's demo lime. Re-read when the light/dark theme flips.
+     ------------------------------------------------------------ */
+  function readPalette() {
+    const cs = getComputedStyle(document.documentElement);
+    const v = n => cs.getPropertyValue(n).trim();
+    const violet = v("--violet"), cyan = v("--cyan"), royal = v("--royal");
+    const mix = window.GhostCharacter.mix;
+    return {
+      colorTop: mix(cyan, "#ffffff", 0.35),
+      colorMiddle: violet,
+      colorBottom: mix(royal, "#000000", 0.1),
+      colorBackTop: mix(violet, "#000000", 0.3),
+      colorBackBottom: mix(royal, "#000000", 0.55),
+    };
+  }
+
+  /* ------------------------------------------------------------
+     Reaction plumbing. Every timed sequence is tied to a token so a
+     grab (or the panel opening) can cancel whatever was in flight.
+     ------------------------------------------------------------ */
+  let token = 0;
+  const timers = new Set();
+  const anims = new Set();
+  let returnAnim = null;
+  let trembleAnim = null;
+
+  function later(fn, ms, t = token) {
+    const id = setTimeout(() => { timers.delete(id); if (t === token) fn(); }, ms);
+    timers.add(id);
+    return id;
+  }
+  function track(anim) {
+    if (!anim) return anim;
+    anims.add(anim);
+    const done = () => anims.delete(anim);
+    anim.addEventListener("finish", done);
+    anim.addEventListener("cancel", done);
+    return anim;
+  }
+  function interrupt() {
+    token++;
+    timers.forEach(clearTimeout); timers.clear();
+    anims.forEach(a => { try { a.cancel(); } catch (e) {} }); anims.clear();
+    returnAnim = null; trembleAnim = null;
+  }
+
+  function gnow() { return window.GhostCharacter.now(); }
+  function doubleBlink() {
+    if (!ghost) return;
+    ghost.setProps({ blinkAt: gnow() });
+    later(() => ghost && ghost.setProps({ blinkAt: gnow() }), 240);
+  }
+  function hop(times) {
+    if (!fx || reduced()) return;
+    track(fx.animate([
+      { transform: "translateY(0) scale(1,1)" },
+      { transform: "translateY(-24px) scale(.97,1.05)", offset: 0.42 },
+      { transform: "translateY(0) scale(1.05,.94)", offset: 0.78 },
+      { transform: "translateY(0) scale(1,1)" },
+    ], { duration: 440, iterations: times, easing: "ease-out" }));
+  }
+  function shake() {
+    if (!fx || reduced()) return;
+    track(fx.animate([
+      { transform: "translateX(0) rotate(0deg)" },
+      { transform: "translateX(-7px) rotate(-5deg)" },
+      { transform: "translateX(7px) rotate(5deg)" },
+      { transform: "translateX(0) rotate(0deg)" },
+    ], { duration: 90, iterations: 5 }));
+  }
+  function startTremble() {
+    if (!fx || reduced()) return;
+    trembleAnim = track(fx.animate([
+      { transform: "translate(-1.6px, 0.6px) rotate(-1.2deg)" },
+      { transform: "translate(1.6px, -0.6px) rotate(1.2deg)" },
+    ], { duration: 70, direction: "alternate", iterations: Infinity }));
+  }
+  function stopTremble() {
+    if (trembleAnim) { try { trembleAnim.cancel(); } catch (e) {} anims.delete(trembleAnim); trembleAnim = null; }
+  }
+
+  /* ------------------------------------------------------------
+     Mood: one function decides the resting face from the current
+     situation, so every reaction can simply "settle" back to it.
+     ------------------------------------------------------------ */
+  let hovering = false, typing = false, thinking = false;
+  function restingMood() {
+    if (panelOpen) return thinking ? "think" : typing ? "excited" : "neutral";
+    return hovering ? "happy" : "neutral";
+  }
+  function settle(withTint = true) {
+    if (!ghost) return;
+    const next = { mood: restingMood() };
+    if (withTint) next.tint = { amount: 0 };
+    ghost.setProps(next);
+  }
+
+  /* ------------------------------------------------------------
+     Corner launcher: build once, attach/detach as the panel opens.
+     ------------------------------------------------------------ */
+  function buildLauncher(withGhost) {
+    host = document.createElement("div");
+    host.className = "ghost-host" + (withGhost ? "" : " is-fallback");
+    host.innerHTML = `
+      <button class="chatbot-launcher${withGhost ? "" : " chatbot-fallback"}" id="chatbotLauncher" type="button"
+        aria-haspopup="dialog" aria-expanded="false" aria-controls="chatbotPanel" aria-label="Chat with the portfolio assistant">
+        ${withGhost
+          ? '<span class="ghost-fx"><span class="ghost-stage"></span></span>'
+          : '<i data-lucide="message-circle" class="icon"></i>'}
+      </button>
+      <div class="ghost-bubble" id="ghostBubble" role="status" aria-live="polite" hidden></div>
+    `;
+    launcher = host.querySelector("#chatbotLauncher");
+    bubbleEl = host.querySelector("#ghostBubble");
+    stage = host.querySelector(".ghost-stage");
+    fx = host.querySelector(".ghost-fx");
+    root.appendChild(host);
+    if (!withGhost) lucide.createIcons();
+    launcherReady = true;
+
+    launcher.addEventListener("click", onLauncherClick, true);
+    launcher.addEventListener("click", () => { if (!panelOpen) openPanel(); });
+    bubbleEl.addEventListener("click", e => { e.stopPropagation(); hideBubble(); });
+    if (withGhost) wireGhostInteractions();
+  }
+
+  function showGhost() {
+    const G = window.GhostCharacter;
+    buildLauncher(true);
+    ghost = G.mount(stage, Object.assign({
+      showGlow: false,        // no glow behind it
+      enableChat: false,      // the click opens the real chat, not the demo quote bubble
+      trackRadius: TRACK_RADIUS,
+      mood: "neutral",
+    }, readPalette()));
+    new MutationObserver(() => ghost && ghost.setProps(readPalette()))
+      .observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  }
+  function showFallback() {
+    buildLauncher(false);
+  }
+
+  /* Swallow the click that the browser fires at the end of a drag. */
+  let swallowClick = false;
+  function onLauncherClick(e) {
+    if (swallowClick) { swallowClick = false; e.preventDefault(); e.stopImmediatePropagation(); }
+  }
+
+  /* ------------------------------------------------------------
+     Drag: pointer events (mouse, pen, touch). Under DRAG_THRESHOLD
+     it is a click. Carried = scared + tremble; dropped = angry +
+     red tint + shake, then it flies home and calms down.
+     ------------------------------------------------------------ */
+  const off = { x: 0, y: 0 };
+  function applyOff() { host.style.transform = `translate3d(${off.x}px, ${off.y}px, 0)`; }
+  function clampOff() {
+    // clamp the launcher hit box to the viewport
+    const w = host.offsetWidth, h = host.offsetHeight;
+    const restL = host.offsetLeft, restT = host.offsetTop;
+    off.x = Math.min(Math.max(off.x, -restL), window.innerWidth - w - restL);
+    off.y = Math.min(Math.max(off.y, -restT), window.innerHeight - h - restT);
+  }
+  function visualOffset() {
+    const r = host.getBoundingClientRect();
+    return { x: r.left - host.offsetLeft, y: r.top - host.offsetTop };
+  }
+
+  function flyHome() {
+    if (!ghost) return;
+    ghost.setProps({ mood: restingMood(), tint: { amount: 0 } }); // calms down as the colours fade back
+    const from = `translate3d(${off.x}px, ${off.y}px, 0)`;
+    const t = token;
+    returnAnim = track(host.animate(
+      [{ transform: from }, { transform: "translate3d(0,0,0)" }],
+      { duration: reduced() ? 300 : FLY_HOME_MS, easing: reduced() ? "ease-out" : "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" }
+    ));
+    const anim = returnAnim;
+    anim.finished.then(() => {
+      if (t !== token || returnAnim !== anim) return;   // grabbed / interrupted meanwhile
+      off.x = 0; off.y = 0; host.style.transform = "";
+      try { anim.cancel(); } catch (e) {}
+      returnAnim = null;
+      doubleBlink();
+      settle();
+    }).catch(() => {});                                   // cancelled: nothing to do
+  }
+  function dropReaction() {
+    stopTremble();
+    ghost.setProps({ mood: "angry", tint: { color: ANGRY_TINT, amount: 0.55 } });
+    shake();
+    later(flyHome, HOLD_ANGRY_MS);
+  }
+
+  function wireGhostInteractions() {
+    let press = null; // { id, sx, sy, ox, oy, moved, mid }
+
+    launcher.addEventListener("pointerdown", e => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (panelOpen) return;
+      hideBubble();
+      swallowClick = false;
+      // grabbed mid-reaction? take over from wherever it visually is
+      const mid = !!returnAnim || off.x !== 0 || off.y !== 0;
+      if (mid) {
+        const v = visualOffset();
+        interrupt();
+        off.x = v.x; off.y = v.y; applyOff();
+      } else {
+        interrupt();
+      }
+      press = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: off.x, oy: off.y, moved: false, mid };
+      try { launcher.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+
+    launcher.addEventListener("pointermove", e => {
+      if (!press || e.pointerId !== press.id) return;
+      const dx = e.clientX - press.sx, dy = e.clientY - press.sy;
+      if (!press.moved) {
+        if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+        press.moved = true;
+        launcher.classList.add("dragging");
+        ghost.setProps({ mood: "anxious", tint: { amount: 0 } }); // scared
+        startTremble();
+      }
+      off.x = press.ox + dx; off.y = press.oy + dy;
+      clampOff(); applyOff();
+      e.preventDefault();
+    });
+
+    function end(e) {
+      if (!press || (e && e.pointerId !== press.id)) return;
+      const p = press; press = null;
+      try { launcher.releasePointerCapture(p.id); } catch (err) {}
+      launcher.classList.remove("dragging");
+      if (p.moved) {
+        swallowClick = true; setTimeout(() => { swallowClick = false; }, 120);
+        dropReaction();
+      } else if (p.mid) {
+        // grabbed during a reaction and let go without moving: carry on home
+        swallowClick = true; setTimeout(() => { swallowClick = false; }, 120);
+        stopTremble();
+        flyHome();
+      }
+      // otherwise: a plain click, handled by the click listener
+    }
+    launcher.addEventListener("pointerup", end);
+    launcher.addEventListener("pointercancel", end);
+
+    // hover: a little happier (mouse / pen only, never touch)
+    launcher.addEventListener("pointerenter", e => {
+      if (e.pointerType === "touch") return;
+      hovering = true;
+      if (!panelOpen && !returnAnim && off.x === 0 && off.y === 0) settle(false);
+    });
+    launcher.addEventListener("pointerleave", () => {
+      hovering = false;
+      if (!panelOpen && off.x === 0 && off.y === 0 && !returnAnim) settle(false);
+    });
+
+    window.addEventListener("resize", () => { if (off.x || off.y) { clampOff(); applyOff(); } });
+  }
+
+  /* ------------------------------------------------------------
+     Speech bubble. Used to tell the visitor something (e.g. chat
+     unavailable). Happy face + three hops + double blink, gone after
+     ~7s, on click, or on a click anywhere else. If the ghost is not
+     on screen yet, the normal toast shows the first line instead.
+     ------------------------------------------------------------ */
+  let bubbleTimer = 0, outsideHandler = null;
+  function hideBubble() {
+    clearTimeout(bubbleTimer);
+    if (outsideHandler) { document.removeEventListener("pointerdown", outsideHandler, true); outsideHandler = null; }
+    if (bubbleEl) bubbleEl.hidden = true;
+  }
+  function say(text) {
+    const lines = String(text).split("\n").map(s => s.trim()).filter(Boolean);
+    if (!lines.length) return;
+    if (!ghost || !host || !host.isConnected) { showToast(lines[0]); return; }
+    hideBubble();
+    bubbleEl.innerHTML = "";
+    const head = document.createElement("strong");
+    head.textContent = lines[0];
+    bubbleEl.appendChild(head);
+    lines.slice(1).forEach(l => { const p = document.createElement("span"); p.textContent = l; bubbleEl.appendChild(p); });
+    bubbleEl.hidden = false;
+
+    if (!returnAnim && off.x === 0 && off.y === 0) {   // never cut a drop/return short
+      interrupt();
+      ghost.setProps({ mood: "happy", tint: { amount: 0 } });   // happy face, no colour change
+      hop(3);
+      later(() => { settle(); doubleBlink(); }, reduced() ? 900 : 440 * 3 + 200);
+    }
+
+    bubbleTimer = setTimeout(hideBubble, BUBBLE_MS);
+    setTimeout(() => {
+      outsideHandler = e => { hideBubble(); };
+      document.addEventListener("pointerdown", outsideHandler, true);
+    }, 0);
+  }
+
+  /* ------------------------------------------------------------
+     Panel open / close. The ghost element is moved (not recreated)
+     between the corner and the header logo slot.
+     ------------------------------------------------------------ */
+  let answers = 0; // successful answers received since the panel was opened
   function openPanel() {
+    if (panelOpen || !launcherReady) return;
+    interrupt(); stopTremble();
+    off.x = 0; off.y = 0;
+    hideBubble();
+    answers = 0;
     panelOpen = true;
+    if (ghost) {
+      headerLogo.appendChild(ghost.el);   // same element, header slot
+      ghost.snapTint(0);                  // the header ghost never carries a colour change
+      ghost.setProps({ mood: "happy" });
+      later(() => settle(), 1500);
+      host.style.transform = "";
+      host.remove();                      // unmount the corner launcher: never two ghosts
+    } else {
+      host.remove();
+      headerLogo.innerHTML = '<i data-lucide="message-circle" class="icon"></i>';
+      lucide.createIcons();
+    }
+    panel.inert = false;
     panel.classList.add("open");
     launcher.setAttribute("aria-expanded", "true");
     if (!messages.length) {
       addMessage("bot", "Hi! I'm here to answer questions about Jatin's experience, projects, and skills. What would you like to know?");
     }
-    setMood("happy");
-    setTimeout(() => { if (mood === "happy") setMood("neutral"); }, 1800);
-    inputEl.focus();
+    inputEl.focus({ preventScroll: true });
   }
   function closePanel() {
-    panelOpen = false;
+    if (!panelOpen) return;
+    panelOpen = false; typing = false; thinking = false;
     panel.classList.remove("open");
+    panel.inert = true;
+    root.appendChild(host);               // launcher back in the corner
+    if (ghost) stage.appendChild(ghost.el);
     launcher.setAttribute("aria-expanded", "false");
-    launcher.focus();
+    launcher.focus({ preventScroll: true });
+    interrupt();
+    if (ghost && answers > 0) celebrate(); else settle();
   }
-  launcher.addEventListener("click", () => { panelOpen ? closePanel() : openPanel(); });
-  closeBtn.addEventListener("click", closePanel);
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && panelOpen) closePanel(); });
+  function celebrate() {
+    ghost.setProps({ mood: "excited" });
+    later(() => {
+      ghost.setProps({ mood: "joy", tint: { color: HAPPY_TINT, amount: 0.5 } });  // joy: arched eyes, no brows
+      hop(2);
+    }, 500);
+    later(() => { settle(); doubleBlink(); }, 500 + 3000);
+  }
 
-  /* ---- chat ---- */
+  closeBtn.addEventListener("click", closePanel);
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    hideBubble();
+    if (panelOpen) closePanel();
+  });
+
+  /* ------------------------------------------------------------
+     Chat (unchanged behaviour). Ghost hooks are the only additions.
+     ------------------------------------------------------------ */
   const messages = []; // {role:"user"|"bot", text}
 
   const MD_ESCAPE = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -1321,6 +1540,32 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
     inputEl.style.height = Math.min(inputEl.scrollHeight, 96) + "px";
   }
 
+  /* ghost reactions to the conversation (header ghost: face only) */
+  let typingTimer = 0;
+  function onTyping() {
+    if (!ghost || !panelOpen || sending) return;
+    typing = inputEl.value.length > 0;
+    ghost.setProps({ mood: restingMood() });
+    clearTimeout(typingTimer);
+    if (typing) typingTimer = setTimeout(() => { typing = false; if (!sending) settle(false); }, 1500);
+  }
+  function onThinkingStart() {
+    clearTimeout(typingTimer); typing = false; thinking = true;
+    if (ghost) ghost.setProps({ mood: "think" });
+  }
+  function onAnswer() {
+    thinking = false;
+    answers++;
+    if (!ghost) return;
+    ghost.setProps({ winkAt: gnow(), winkEye: "right", mood: "neutral" });   // one wink, then calm
+  }
+  function onFailure() {
+    thinking = false;
+    if (!ghost) return;
+    ghost.setProps({ mood: "sad" });
+    setTimeout(() => { if (!thinking) settle(false); }, 1800);
+  }
+
   let sending = false;
   async function sendMessage() {
     const text = inputEl.value.trim();
@@ -1330,15 +1575,14 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
     addMessage("user", text);
     sending = true;
     sendBtn.disabled = true;
-    setMood("anxious");
+    onThinkingStart();
     showTyping();
 
     if (!CHATBOT_ENDPOINT) {
       await new Promise(r => setTimeout(r, 500));
       hideTyping();
       addMessage("bot", "The chatbot proxy isn't connected yet. See apps-script/chatbot.gs for setup. In the meantime, feel free to use the contact form below!", true);
-      setMood("sad");
-      setTimeout(() => setMood("neutral"), 2000);
+      onFailure();
       sending = false;
       sendBtn.disabled = false;
       return;
@@ -1353,27 +1597,63 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
       hideTyping();
       if (data.error) {
         addMessage("bot", data.error, true);
-        setMood("sad");
+        onFailure();
       } else {
         addMessage("bot", data.reply || "Sorry, I didn't catch that. Could you rephrase?");
-        setMood("happy");
+        onAnswer();
       }
     } catch (err) {
       hideTyping();
       addMessage("bot", "Couldn't reach the assistant right now. Please try again, or use the contact form.", true);
-      setMood("sad");
+      onFailure();
     } finally {
-      setTimeout(() => setMood("neutral"), 2000);
       sending = false;
       sendBtn.disabled = false;
     }
   }
 
   sendBtn.addEventListener("click", sendMessage);
-  inputEl.addEventListener("input", autosize);
+  inputEl.addEventListener("input", () => { autosize(); onTyping(); });
   inputEl.addEventListener("keydown", e => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   });
+  inputEl.addEventListener("blur", () => { if (panelOpen && !sending) { typing = false; settle(false); } });
+
+  /* ------------------------------------------------------------
+     Lazy-load the character exactly once. Nothing is rendered
+     until it is ready (no flash of an old button); a plain
+     fallback button appears only on failure or after ~8s.
+     ------------------------------------------------------------ */
+  let decided = false;
+  function decide(ok) {
+    if (decided) return;
+    decided = true;
+    clearTimeout(timeoutId);
+    if (ok && window.GhostCharacter) showGhost(); else showFallback();
+  }
+  let timeoutId = 0;
+  function loadGhost() {
+    timeoutId = setTimeout(() => decide(false), GHOST_TIMEOUT_MS);
+    if (window.GhostCharacter) { decide(true); return; }
+    const s = document.createElement("script");
+    s.src = GHOST_SRC;
+    s.async = true;
+    s.onload = () => decide(true);
+    s.onerror = () => decide(false);
+    document.head.appendChild(s);
+  }
+  if ("requestIdleCallback" in window) requestIdleCallback(loadGhost, { timeout: 1500 });
+  else setTimeout(loadGhost, 300);
+
+  // Small, deliberate hook for other UI (and for testing): speak / close with a notice.
+  window.portfolioChat = {
+    say,
+    open: () => openPanel(),
+    close: () => closePanel(),
+    /* e.g. chat became unavailable while open: close it and tell the visitor why */
+    closeWithNotice(text) { if (panelOpen) closePanel(); say(text); },
+    get state() { return { panelOpen, hasGhost: !!ghost, launcherReady }; },
+  };
 })();
 
 /* ============================================================
