@@ -721,22 +721,6 @@ footer .sub{ margin:16px auto 0; max-width:46ch; font-size:14.5px; color:var(--d
 }
 
 /* ============================================================
-   MAGIC CURSOR, spring-eased custom pointer, ported from the
-   requested Framer "SmoothCursor" component. Icon is the user's own
-   rocket artwork; its nose sits ~21.1deg off the image's own vertical
-   axis (measured from the source PNG), so a fixed counter-rotation on
-   the <img> itself corrects that before the JS-driven, direction-of-
-   travel rotation is applied to the wrapper on top of it.
-   ============================================================ */
-.magic-cursor{
-  position:fixed; top:0; left:0; z-index:9999; pointer-events:none;
-  width:22px; height:22px; will-change:transform; /* ~native cursor size */
-  transform:translate(-100px,-100px);
-}
-.magic-cursor img{ width:100%; height:100%; object-fit:contain; display:block; transform:rotate(21.1deg); }
-body.magic-cursor-active, body.magic-cursor-active *{ cursor:none !important; }
-
-/* ============================================================
    PORTFOLIO CHATBOT: interactive ghost mascot as launcher + header
    logo (assets/ghost/, vendored from the Framer "Interactive Ghost"
    component). Layers, outermost first:
@@ -750,6 +734,8 @@ body.magic-cursor-active, body.magic-cursor-active *{ cursor:none !important; }
 .ghost-host{
   position:fixed; right:24px; bottom:24px; z-index:90;
   width:96px; height:96px;
+  /* set by script when the visible area is smaller than the layout viewport */
+  translate:var(--vv-x,0px) var(--vv-y,0px); scale:var(--vv-s,1); transform-origin:100% 100%;
 }
 .chatbot-launcher{
   position:relative; display:block; width:100%; height:100%; padding:0; border-radius:50%;

@@ -98,7 +98,8 @@
 
     var VBH = p.bodyHeight + 40;
     var svg = document.createElementNS(SVG_NS, "svg");
-    svg.setAttribute("viewBox", "5 10 190 " + VBH);
+    /* generous horizontal room: lean + sway + eye-follow can never reach the edge */
+    svg.setAttribute("viewBox", "-5 10 210 " + VBH);
     svg.setAttribute("focusable", "false");
     svg.innerHTML =
       '<defs>' +
@@ -249,7 +250,6 @@
     root.addEventListener("pointermove", onPointerMove, { passive: true });
 
     /* ---- frame ----------------------------------------------------------- */
-    var ARCH_Y = 0;
     function frame(now) {
       if (destroyed) return;
       var time = now - t0;

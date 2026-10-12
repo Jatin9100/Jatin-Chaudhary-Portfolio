@@ -812,9 +812,8 @@ window.addEventListener("pointermove", e => {
   });
 }, { passive: true });
 
-/* Shared damped-spring integrator (semi-implicit Euler), standing in for
-   framer-motion's useSpring across both the magic cursor and the liquid
-   name-hover effect below. Verified numerically stable and convergent at
+/* Damped-spring integrator (semi-implicit Euler), standing in for
+   framer-motion's useSpring for the liquid name-hover effect below. Verified numerically stable and convergent at
    the stiffness/damping/mass values each caller uses, including under
    sudden target jumps and rapid target flips. */
 function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
@@ -822,100 +821,6 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
   s.vel += (force / mass) * dt;
   s.v += s.vel * dt;
 }
-
-/* ============================================================
-   INTERACTION: magic cursor, ported from the requested Framer
-   "SmoothCursor" component (framer.com/m/Smoothcursor-o8zdlR.js)
-   into vanilla JS, since this site has no React/build step. A
-   custom pointer icon chases the real cursor via damped springs on
-   position/rotation/scale. Rotation faces the direction of travel
-   with wrap-safe accumulation (avoids snapping the "long way" across
-   the +-180 degree seam); scale squishes slightly while moving and on
-   click. Skipped under prefers-reduced-motion and on touch/narrow/
-   portrait devices, mirroring the source component's own mobile guard.
-   ============================================================ */
-(function magicCursor(){
-  if (prefersReducedMotion) return;
-  const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-  const fitsDesktop = window.innerWidth >= 768 && window.innerWidth > window.innerHeight;
-  if (isTouch || !fitsDesktop) return;
-
-  const STIFFNESS = 400, DAMPING = 45, MASS = 1;
-  const ROT_STIFFNESS = 300, ROT_DAMPING = 60;
-  const SCALE_STIFFNESS = 500, SCALE_DAMPING = 35;
-
-  const cursor = document.createElement("div");
-  cursor.className = "magic-cursor";
-  cursor.setAttribute("aria-hidden", "true");
-  cursor.innerHTML = `<img src="assets/cursor/rocket-cursor.png" alt="">`;
-  document.body.appendChild(cursor);
-  document.body.classList.add("magic-cursor-active");
-
-  const posX = { v: -100, vel: 0 }, posY = { v: -100, vel: 0 };
-  const rot = { v: 0, vel: 0 }, scl = { v: 1, vel: 0 };
-  let targetX = -100, targetY = -100, targetRot = 0, targetScale = 1;
-
-  let lastMouse = { x: 0, y: 0 }, lastMoveTime = performance.now();
-  let velocity = { x: 0, y: 0 };
-  let previousAngle = 0, accumulatedRotation = 0;
-  let isMouseDown = false, squishTimer = null, movePending = false;
-
-  function handleMouseMove(e) {
-    if (movePending) return;
-    movePending = true;
-    requestAnimationFrame(() => {
-      movePending = false;
-      const now = performance.now();
-      const dt = now - lastMoveTime;
-      if (dt > 0) {
-        velocity.x = (e.clientX - lastMouse.x) / dt;
-        velocity.y = (e.clientY - lastMouse.y) / dt;
-      }
-      lastMoveTime = now;
-      lastMouse = { x: e.clientX, y: e.clientY };
-      targetX = e.clientX;
-      targetY = e.clientY;
-
-      const speed = Math.hypot(velocity.x, velocity.y);
-      if (speed > 0.1) {
-        const currentAngle = Math.atan2(velocity.y, velocity.x) * (180 / Math.PI) + 90;
-        let angleDiff = currentAngle - previousAngle;
-        if (angleDiff > 180) angleDiff -= 360;
-        if (angleDiff < -180) angleDiff += 360;
-        accumulatedRotation += angleDiff;
-        targetRot = accumulatedRotation;
-        previousAngle = currentAngle;
-
-        if (!isMouseDown) {
-          targetScale = 0.95;
-          clearTimeout(squishTimer);
-          squishTimer = setTimeout(() => { if (!isMouseDown) targetScale = 1; }, 150);
-        }
-      }
-    });
-  }
-  function handleMouseDown() { isMouseDown = true; targetScale = 0.7; }
-  function handleMouseUp() { isMouseDown = false; targetScale = 1; }
-
-  window.addEventListener("mousemove", handleMouseMove, { passive: true });
-  window.addEventListener("mousedown", handleMouseDown, { passive: true });
-  window.addEventListener("mouseup", handleMouseUp, { passive: true });
-  window.addEventListener("mouseleave", handleMouseUp, { passive: true });
-
-  let lastFrameTime = performance.now();
-  function frame(now) {
-    const dt = Math.min((now - lastFrameTime) / 1000, 1 / 30); // clamp: stable through frame drops
-    lastFrameTime = now;
-    dampedSpringStep(posX, targetX, STIFFNESS, DAMPING, MASS, dt);
-    dampedSpringStep(posY, targetY, STIFFNESS, DAMPING, MASS, dt);
-    dampedSpringStep(rot, targetRot, ROT_STIFFNESS, ROT_DAMPING, MASS, dt);
-    dampedSpringStep(scl, targetScale, SCALE_STIFFNESS, SCALE_DAMPING, MASS, dt);
-    cursor.style.transform =
-      `translate(${posX.v.toFixed(2)}px, ${posY.v.toFixed(2)}px) translate(-50%,-50%) rotate(${rot.v.toFixed(2)}deg) scale(${scl.v.toFixed(3)})`;
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-})();
 
 /* ============================================================
    INTERACTION: liquid name hover, the hero's "Jatin Chaudhary" name
@@ -1220,6 +1125,7 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
     root.appendChild(host);
     if (!withGhost) lucide.createIcons();
     launcherReady = true;
+    pinToVisualViewport();
 
     launcher.addEventListener("click", onLauncherClick, true);
     launcher.addEventListener("click", () => { if (!panelOpen) openPanel(); });
@@ -1243,6 +1149,25 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
     buildLauncher(false);
   }
 
+  /* position:fixed anchors to the LAYOUT viewport. When the visual viewport
+     is smaller (pinch-zoomed, or Chrome's "desktop site" mode on a phone) a
+     bottom-right element is partly off-screen, i.e. trimmed on the right.
+     Pull the launcher back into the visible area and keep its apparent size. */
+  function pinToVisualViewport() {
+    const vv = window.visualViewport;
+    if (!host || !vv) return;
+    const dx = vv.offsetLeft + vv.width - document.documentElement.clientWidth;
+    const dy = vv.offsetTop + vv.height - window.innerHeight;
+    const s = vv.scale > 1.01 ? Math.max(0.5, 1 / vv.scale) : 1;
+    host.style.setProperty("--vv-x", Math.min(0, dx).toFixed(1) + "px");
+    host.style.setProperty("--vv-y", Math.min(0, dy).toFixed(1) + "px");
+    host.style.setProperty("--vv-s", s.toFixed(3));
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", pinToVisualViewport);
+    window.visualViewport.addEventListener("scroll", pinToVisualViewport);
+  }
+
   /* Swallow the click that the browser fires at the end of a drag. */
   let swallowClick = false;
   function onLauncherClick(e) {
@@ -1258,10 +1183,13 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
   function applyOff() { host.style.transform = `translate3d(${off.x}px, ${off.y}px, 0)`; }
   function clampOff() {
     // clamp the launcher hit box to the viewport
+    // clientWidth, not innerWidth: innerWidth includes the scrollbar, which
+    // would let the ghost sit under it and look trimmed on the right
+    const vw = document.documentElement.clientWidth, vh = window.innerHeight;
     const w = host.offsetWidth, h = host.offsetHeight;
     const restL = host.offsetLeft, restT = host.offsetTop;
-    off.x = Math.min(Math.max(off.x, -restL), window.innerWidth - w - restL);
-    off.y = Math.min(Math.max(off.y, -restT), window.innerHeight - h - restT);
+    off.x = Math.min(Math.max(off.x, -restL), vw - w - restL);
+    off.y = Math.min(Math.max(off.y, -restT), vh - h - restT);
   }
   function visualOffset() {
     const r = host.getBoundingClientRect();
