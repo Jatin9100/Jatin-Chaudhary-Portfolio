@@ -1,5 +1,5 @@
 /* ============================================================
-   CONFIG — set this to your own form endpoint (Google Apps
+   CONFIG, set this to your own form endpoint (Google Apps
    Script, Formspree, etc) to have the contact form POST there.
    Left blank, the form falls back to opening the visitor's
    mail client with a pre-filled message.
@@ -7,16 +7,16 @@
 const CONTACT_ENDPOINT = "https://script.google.com/macros/s/AKfycbxTkzMB0tnwQQ3BTuwSGV-vEK9zHsnQ9Jw_6kWVMvoRmKuuYleN7mOCraxNi206u4It/exec"; // e.g. "https://script.google.com/macros/s/XXXX/exec"
 const CONTACT_EMAIL = "jatinchaudhary910official@gmail.com";
 
-/* Same pattern as CONTACT_ENDPOINT above, for the portfolio chatbot —
+/* Same pattern as CONTACT_ENDPOINT above, for the portfolio chatbot -
    see apps-script/chatbot.gs for the proxy this must point to and its
    setup steps. Left blank, the chat panel still opens but shows a
    "not configured yet" message instead of calling anything. The
-   Gemini API key itself must never go here — it lives only in that
+   Gemini API key itself must never go here, it lives only in that
    Apps Script project's Script Properties. */
 const CHATBOT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyQoyPUgCwSu--vvKokXIYow-yAFwyx7tOBPu4vG-X2fQBLgkwf-8ZnM70HjcDN-7BI/exec";
 
 /* ============================================================
-   DATA — everything preserved from the original site content.
+   DATA, everything preserved from the original site content.
    Edit here; every section below renders from these objects.
    ============================================================ */
 const CORE_FOCUS = [
@@ -27,89 +27,78 @@ const CORE_FOCUS = [
 ];
 
 const IMPACT_STATS = [
-  { value: 1.65, prefix: "₹", suffix: " Cr+", decimals: 2, label: "Documented annual savings" },
+  { value: 1.85, prefix: "₹", suffix: " Cr+", decimals: 2, label: "Documented annual savings" },
   { display: "30–70%+", label: "TAT reduction range" },
   { value: 78, suffix: "%", decimals: 0, label: "Error / penalty reduction" },
-  { value: 11, suffix: "+", decimals: 0, label: "Processes enhanced" },
+  { value: 11, suffix: "+", decimals: 0, label: "Workflows re-engineered" },
   { value: 4, suffix: "+", decimals: 0, label: "Years in Product & Process" },
 ];
 
 const TIMELINE = [
   {
-    step: "01", role: "Assistant Product Manager — CTO Office",
-    org: "Medi Assist TPA · Bangalore", period: "FEB 2026 — PRESENT",
-    summary: "Sole PM for 10+ transformation initiatives across the newly merged CTO Office — owning discovery through delivery, with every initiative tied to a quantified operational or cost outcome.",
+    step: "01", role: "Assistant Product Manager, CTO Office",
+    org: "Medi Assist TPA · Bangalore", period: "FEB 2026 to PRESENT",
+    summary: "Product lead for 10+ transformation projects in the CTO Office, owning discovery through delivery, with every initiative tied to a quantified cost or operational outcome.",
     detail: [
       { heading: "Product Ownership & Roadmap", items: [
-        "End-to-end PM for 10+ concurrent initiatives spanning Product, Engineering, IT, and Ops post-merger",
-        "Defined problem statements, prioritized the roadmap, and drove delivery from discovery through GA",
-        "Sole owner of executive-facing delivery visibility and program governance for the CTO Office",
+        "End-to-end PM across 10+ transformation projects spanning Product, Engineering, IT, and Operations",
+        "Defined problem statements, prioritized the roadmap, and drove delivery from discovery to rollout",
+        "Gave management one view of delivery status, collaboration, and reporting",
       ]},
       { heading: "Shipped Products & Measured Outcomes", items: [
-        "AI-assisted internal PM platform, built to replace Zoho — ₹35L in annual licensing savings",
-        "Built and trained an AI claims-query chatbot for end customers — cut specific repeat call-centre query volume by 71%",
-        "Redesigned customer onboarding into one unified module — TAT cut from 8–9 days to 2–3 days (about 70%)",
-        "Owned Support Module Automation from BRD/PRD through UAT to production — ₹40L in annual savings",
-        "Rebuilt Recovery Audit Management as a governed workflow — zero missed cases since launch",
+        "AI-assisted internal PM platform built to replace Zoho: ₹55L reduction in annual software spend",
+        "Built and trained a claims query chatbot for end customers: 71% fewer repeat queries at the call centre",
+        "Redesigned onboarding into a single module across CRM, Operations, and IT: 8–9 days down to 2–3 days (about 70%)",
+        "Managed Support Module automation from BRD/PRD through UAT to rollout: ₹40L in annual savings",
       ]},
-      { heading: "Stakeholder Leadership & Vendor Governance", items: [
-        "Partnered directly with senior leadership to scope requirements and clear delivery blockers",
-        "Ran vendor evaluation, commercial negotiation, and SOW closure for 24+ resources — ~₹70L in annual savings with no drop in delivery quality",
+      { heading: "Vendor & SOW Governance", items: [
+        "Ran vendor evaluation, negotiation, and SOW governance for 24+ resources",
+        "₹70L in annual cost savings",
       ]},
     ],
   },
   {
-    step: "02", role: "Assistant Manager — Business Process Re-Engineering",
-    org: "Paramount Health Services & Insurance TPA · Mumbai", period: "MAR 2024 — FEB 2026",
-    summary: "Product owner for an in-house enterprise ticketing platform and a new modular Benefits configuration module — embedding AI/ML query automation and re-architecting benefit mapping for new-age policies.",
+    step: "02", role: "Assistant Manager, Business Process Re-Engineering",
+    org: "Paramount Health Insurance TPA · Mumbai", period: "MAR 2024 to FEB 2026",
+    summary: "Led discovery and adoption of an in-house AI/ML ticketing platform and rebuilt the Benefits configuration module for new-age policies the earlier system could not process.",
     detail: [
       { heading: "Product Ownership & Roadmap", items: [
-        "Owned the full lifecycle for both initiatives: discovery, requirement gathering, solution design, roadmap, and launch",
-        "Defined and sequenced the feature roadmap against business priority and engineering capacity",
+        "Led discovery, user research, and workflow mapping for the ticketing platform",
+        "Defined requirements and sequenced delivery for the new Benefits configuration module",
       ]},
       { heading: "Shipped Products & Measured Outcomes", items: [
-        "Integrated AI/ML query resolution into the ticketing platform — 82% user adoption within 4 months, 30% reduction in turnaround time, and ₹20L in annual savings",
-        "Revamped and launched a modular Benefits configuration module supporting multi-level benefit structures for new-age policies — reduced benefit-mapping-related penalties by 78%",
-        "Built leadership-facing performance analytics to track adoption and resolution quality post-launch",
-      ]},
-      { heading: "Stakeholder Leadership", items: [
-        "Aligned Product, Engineering, Operations, and Business on requirements and success metrics upfront",
-        "Ran feature-prioritization sessions jointly with stakeholders to keep the roadmap accountable",
+        "AI/ML-enabled ticketing platform: 82% user adoption within 4 months, 30% reduction in turnaround time, ₹20L in annual savings",
+        "Modular, multi-level Benefits configuration module with end-to-end benefit mapping: 78% fewer benefit-mapping-related penalties",
       ]},
     ],
   },
   {
-    step: "03", role: "Senior Executive — Business Process Re-Engineering",
-    org: "Paramount Health Services & Insurance TPA · Mumbai", period: "FEB 2023 — MAR 2024",
-    summary: "Diagnosed and redesigned 11+ critical business processes using data-driven bottleneck analysis, delivering an average 21% efficiency gain and a 78% cut in manual processing errors across 18+ technology-enabled initiatives.",
+    step: "03", role: "Senior Executive, Business Process Re-Engineering",
+    org: "Paramount Health Insurance TPA · Mumbai", period: "FEB 2023 to MAR 2024",
+    summary: "Re-engineered 11+ business workflows through stakeholder interviews and data analysis, lifting process efficiency by 21% on average and cutting manual processing errors by 78%.",
     detail: [
       { heading: "Problem Discovery & Solution Design", items: [
-        "Ran bottleneck analysis and process mapping across 11+ business processes to surface root causes",
-        "Translated findings into redesigned, technology-enabled workflows rather than one-off fixes",
+        "Conducted user research and stakeholder interviews across 11+ business workflows",
+        "Used data analysis and process mapping to isolate root causes before redesigning",
       ]},
       { heading: "Delivery & Measured Outcomes", items: [
-        "Delivered 18+ technology initiatives in partnership with Product, Business, and Engineering",
-        "Average 21% improvement in process efficiency, with a 78% reduction in manual processing errors",
-        "Raised internal user satisfaction scores from 60% to 89% while cutting turnaround time by 30%",
-      ]},
-      { heading: "Stakeholder Leadership", items: [
-        "Partnered cross-functionally to gather requirements and define functional solutions",
-        "Built automation strategies designed for reuse, supporting longer-term organizational scale",
+        "Delivered 18+ technology initiatives with Product and Engineering, from requirements to UAT",
+        "21% average improvement in process efficiency and 78% fewer manual processing errors",
+        "Internal user satisfaction up from 60% to 89%, with turnaround time down 30%",
       ]},
     ],
   },
   {
-    step: "04", role: "Project Co-Ordinator",
-    org: "NexGen Integrated Systems · Mumbai", period: "JUN 2022 — FEB 2023",
-    summary: "First taste of end-to-end ownership — coordinated 12 concurrent projects at a 96% efficiency rate and led the bidding process for 10+ new engagements, the foundation for the delivery discipline that followed.",
+    step: "04", role: "Project Coordinator",
+    org: "NexGen Integrated Systems · Mumbai", period: "JUN 2022 to FEB 2023",
+    summary: "First role in end-to-end delivery: kept 12 concurrent projects at a 96% efficiency rate and won 10+ enterprise bids, the foundation for the delivery discipline that followed.",
     detail: [
       { heading: "Delivery Ownership", items: [
-        "Coordinated 12 concurrent projects end-to-end at a 96% efficiency rate",
-        "Led scoping and bidding for 10+ projects with full SOP compliance and documentation",
+        "Maintained a 96% delivery efficiency rate across 12 concurrent projects",
+        "Won 10+ enterprise project bids through SOP compliance, client alignment, and complete documentation",
       ]},
-      { heading: "Team & Stakeholder Leadership", items: [
-        "Led a 7-member team through assembly and testing to delivery",
-        "Built and maintained client relationships to keep scope and deliverables aligned",
+      { heading: "Team Leadership", items: [
+        "Led a 7-member cross-functional team",
       ]},
     ],
   },
@@ -118,193 +107,166 @@ const TIMELINE = [
 const CASE_STUDIES = [
   { id:"ai-pm-platform", category:"ai", catLabel:"AI/Automation", tag:"01",
     title:"AI-Assisted Internal Project Management Platform",
-    org:"Medi Assist TPA — CTO Office · 2026",
-    problem:"Post-merger, the CTO Office ran on standardized Zoho Sprints tooling that didn't reflect how the team actually planned, escalated, or reported — creating licensing cost with limited executive visibility into delivery.",
+    org:"Medi Assist TPA, CTO Office · 2026",
+    problem:"The CTO Office ran on standardized Zoho tooling that did not reflect how the team actually planned, escalated, or reported, which meant licensing cost and limited visibility for management.",
     approach:[
-      "Ran a build-vs-buy evaluation and made the case to replace Zoho with a purpose-built internal platform",
-      "Defined the requirements and workflow logic directly from how the merged team actually planned and escalated work",
-      "Integrated AI to automate status capture and generate executive-ready delivery reporting",
+      "Made the case to replace Zoho with a purpose-built internal platform",
+      "Defined requirements and workflow logic from how the team really planned and escalated work",
+      "Integrated AI to improve collaboration, execution tracking, and management reporting",
     ],
     impact:[
-      "₹35L in annual licensing savings",
-      "Unified execution tracking and reporting across 10+ initiatives",
-      "Single source of truth for CTO Office delivery status",
+      "₹55L reduction in annual software spend",
+      "Better cross-team collaboration and reporting for management",
+      "Single source of truth for delivery status",
     ],
     pmSkills:["Build vs. buy analysis","AI/ML integration","Cost optimization","0→1 internal tool design"],
-    metrics:[{val:"₹35L",label:"Annual savings"},{val:"10+",label:"Initiatives tracked"}],
+    metrics:[{val:"₹55L",label:"Annual savings"},{val:"0→1",label:"Internal platform"}],
   },
   { id:"claims-chatbot", category:"ai", catLabel:"AI/Automation", tag:"02",
     title:"AI Claims-Query Chatbot for End Customers",
-    org:"Medi Assist TPA — CTO Office · 2026",
-    problem:"Call-centre volume was dominated by a set of recurring claims queries customers could self-serve if answered clearly and consistently — but no automated channel existed to intercept them before they reached an agent.",
+    org:"Medi Assist TPA, CTO Office · 2026",
+    problem:"Call-centre volume was dominated by recurring claims queries that customers could self-serve if answered clearly and consistently, but no automated channel existed to intercept them.",
     approach:[
-      "Analyzed recurring call-centre query patterns and existing claims correspondence to identify high-frequency, self-serviceable queries",
-      "Defined the chatbot's scope, conversation flows, and training data directly from that query analysis",
-      "Built and trained the chatbot, then validated accuracy against real call-centre queries before rollout",
+      "Analyzed recurring call-centre queries and existing claims letters to find high-frequency, self-serviceable questions",
+      "Defined the chatbot's scope, conversation flows, and training data from that analysis",
+      "Built and trained the chatbot for end customers",
     ],
     impact:[
       "71% reduction in specific repeat query volume at the call centre",
-      "Faster, self-serve resolution for customers on high-frequency claims questions",
-      "Reduced load on call-centre agents for repetitive queries",
+      "Faster, self-serve resolution on high-frequency claims questions",
     ],
     pmSkills:["Conversational AI design","Query pattern analysis","0→1 product design","Customer self-service"],
     metrics:[{val:"71%",label:"Fewer repeat queries"},{val:"0→1",label:"New self-serve channel"}],
   },
   { id:"onboarding-transformation", category:"transformation", catLabel:"Process Transformation", tag:"03",
     title:"Enterprise Customer Onboarding Transformation",
-    org:"Medi Assist TPA — CTO Office · 2026",
-    problem:"Customer onboarding ran as disconnected handoffs across CRM, Operations, and IT with no shared source of truth — pushing turnaround to 8–9 days and leaving leadership blind to where a case actually stood.",
+    org:"Medi Assist TPA, CTO Office · 2026",
+    problem:"Customer onboarding ran as disconnected handoffs across CRM, Operations, and IT with no shared source of truth, pushing turnaround to 8–9 days.",
     approach:[
-      "Mapped the onboarding journey end-to-end to pinpoint handoff gaps between CRM, Ops, and IT",
-      "Designed one unified onboarding module to replace the three disconnected systems of record",
-      "Coordinated the cross-functional rollout and change management across all three teams",
+      "Mapped the onboarding journey end to end to pinpoint handoff gaps between CRM, Operations, and IT",
+      "Redesigned the workflows into a single onboarding module integrating all three",
+      "Delivered it as part of a wider programme of 10+ transformation projects",
     ],
     impact:[
-      "TAT cut from 8–9 days to 2–3 days (about 70% reduction)",
-      "Real-time process visibility for leadership and customers",
-      "Single system of record replacing three disconnected handoffs",
+      "Onboarding time cut from 8–9 days to 2–3 days (about 70%)",
+      "Single module replacing disconnected handoffs",
+      "Clear process visibility for leadership",
     ],
     pmSkills:["Cross-functional workflow orchestration","Systems integration","Journey mapping & UX redesign"],
     metrics:[{val:"~70%",label:"TAT reduction"},{val:"2–3d",label:"From 8–9 days"}],
   },
   { id:"support-automation", category:"ai", catLabel:"AI/Automation", tag:"04",
-    title:"Support & Operational Workflow Automation",
-    org:"Medi Assist TPA — CTO Office · 2026",
-    problem:"Support and ticketing workflows still ran on manual triage as case volume grew post-merger — creating data-accuracy risk, slow response, and rising manual effort with no automation safety net.",
+    title:"Support Module Automation",
+    org:"Medi Assist TPA, CTO Office · 2026",
+    problem:"Support workflows ran on heavy manual effort, creating data-accuracy risk and recurring operational cost with no automation in place.",
     approach:[
-      "Led requirement elicitation with support and ops teams to map the manual triage workflow end-to-end",
-      "Authored the BRD/PRD and business-logic mapping for the automated workflow",
-      "Owned UAT and phased production rollout, closing gaps identified during testing before GA",
+      "Gathered requirements with support and operations teams to map the manual workflow",
+      "Authored the BRD/PRD and designed the solution",
+      "Owned UAT and production rollout",
     ],
     impact:[
-      "₹40L in annual operational savings",
-      "Reduced manual effort across support operations",
-      "Improved data accuracy post-automation",
+      "₹40L in annual savings",
+      "Improved data accuracy",
+      "Reduced manual work across support operations",
     ],
-    pmSkills:["End-to-end product lifecycle","Requirement elicitation","UAT management","Process automation"],
+    pmSkills:["End-to-end product lifecycle","Requirement gathering","UAT management","Process automation"],
     metrics:[{val:"₹40L",label:"Annual savings"},{val:"E2E",label:"Lifecycle ownership"}],
   },
-  { id:"recovery-audit", category:"governance", catLabel:"Governance", tag:"05",
-    title:"Centralized Recovery Audit Management System",
-    org:"Medi Assist TPA — CTO Office · 2026",
-    problem:"Recovery tracking ran on a fragile, manual Google Apps Script setup with no audit trail, no access control, and real exposure to missed recoveries and penalties.",
-    approach:[
-      "Audited the existing script-based process to identify failure points and compliance gaps",
-      "Defined requirements for a centralized, access-controlled audit-tracking workflow",
-      "Migrated recovery tracking off the legacy script onto the new governed system with zero disruption to active cases",
-    ],
-    impact:[
-      "Zero missed recovery or penalty cases since implementation",
-      "Full audit trail and access control on every recovery case",
-      "Materially faster recovery-tracking turnaround",
-    ],
-    pmSkills:["Risk mitigation","Tech-debt reduction","Legacy system migration"],
-    metrics:[{val:"Zero",label:"Missed cases"},{val:"↓",label:"Recovery TAT"}],
-  },
-  { id:"vendor-governance", category:"governance", catLabel:"Governance", tag:"06",
-    title:"Vendor & Resource Engagement Governance Framework",
-    org:"Medi Assist TPA — CTO Office · 2026",
-    problem:"Third-party resourcing across 24+ engineering and operations roles had no consistent evaluation, negotiation, or delivery-governance process — leaving cost and delivery risk largely unmanaged.",
+  { id:"vendor-governance", category:"governance", catLabel:"Governance", tag:"05",
+    title:"Vendor & Resource Engagement Governance",
+    org:"Medi Assist TPA, CTO Office · 2026",
+    problem:"Third-party resourcing across 24+ roles had no consistent evaluation, negotiation, or SOW governance, leaving cost and delivery risk largely unmanaged.",
     approach:[
       "Ran structured vendor evaluation and commercial negotiation for every engagement",
-      "Standardized SOW finalization and delivery-tracking checkpoints across all vendors",
-      "Held vendors to the same delivery-quality bar as negotiated cost targets, engagement by engagement",
+      "Standardized SOW finalization and delivery governance",
+      "Held vendors to the same quality bar as the negotiated cost targets",
     ],
     impact:[
-      "₹70L annual reduction in third-party spend",
-      "No compromise to delivery quality or timelines across 24+ resources",
+      "₹70L in annual cost savings",
+      "24+ resources negotiated with no drop in delivery quality",
     ],
-    pmSkills:["Vendor governance","Budget management","Commercial negotiation","Agile resource planning"],
+    pmSkills:["Vendor governance","SOW management","Commercial negotiation","Budget management"],
     metrics:[{val:"₹70L",label:"Annual savings"},{val:"24+",label:"Resources negotiated"}],
   },
-  { id:"ticketing-platform", category:"ai", catLabel:"AI/Automation", tag:"07",
-    title:"AI/ML-Powered Enterprise Ticketing Platform",
-    org:"Paramount Health Services & Insurance TPA · 2024–2026",
-    problem:"No in-house system existed to track and resolve enterprise queries at scale — resolution relied on manual routing with no analytics layer for leadership to see where time and quality were being lost.",
+  { id:"ticketing-platform", category:"ai", catLabel:"AI/Automation", tag:"06",
+    title:"AI/ML-Enabled Enterprise Ticketing Platform",
+    org:"Paramount Health Insurance TPA · 2024 to 2026",
+    problem:"There was no in-house system to track and resolve enterprise queries at scale, and no analytics layer to show leadership where time and quality were being lost.",
     approach:[
-      "Owned the platform from discovery through roadmap definition and launch",
+      "Led discovery, including user research and workflow mapping",
       "Prioritized AI/ML-based query resolution as the core differentiator over manual routing",
-      "Built leadership-facing analytics dashboards to track resolution speed and quality post-launch",
+      "Drove adoption through the first four months after launch",
     ],
     impact:[
       "82% user adoption within 4 months of launch",
-      "₹20L in annual operational cost savings",
-      "30% reduction in turnaround time (TAT)",
+      "₹20L in annual savings",
+      "30% reduction in turnaround time",
     ],
-    pmSkills:["Roadmap definition","AI/ML feature prioritization","Analytics dashboarding","User adoption strategy"],
+    pmSkills:["User research","Workflow mapping","AI/ML feature prioritization","User adoption strategy"],
     metrics:[{val:"82%",label:"User adoption"},{val:"₹20L",label:"Annual savings"}],
   },
-  { id:"benefit-module-revamp", category:"platform", catLabel:"Core Platform", tag:"08",
+  { id:"benefit-module-revamp", category:"platform", catLabel:"Core Platform", tag:"07",
     title:"Modular Benefits Configuration Module",
-    org:"Paramount Health Services & Insurance TPA · 2024–2026",
-    problem:"The legacy benefits engine was built for single-tier policies and couldn't process the modular, multi-level benefit structures new-age policies required — driving benefit-mapping errors and recurring financial penalties.",
+    org:"Paramount Health Insurance TPA · 2024 to 2026",
+    problem:"The earlier system could not process the modular, multi-level benefit structures that new-age policies required, driving mapping errors and recurring penalties.",
     approach:[
-      "Mapped the existing benefit-configuration logic end-to-end to isolate where multi-level, modular structures broke the system",
-      "Designed and implemented a new Benefits configuration module supporting reusable, multi-level benefit components",
-      "Automated end-to-end benefit mapping in place of the manual, error-prone configuration process",
+      "Mapped the existing benefit-configuration logic to find where multi-level structures broke",
+      "Revamped and implemented a new Benefits configuration module supporting modular, multi-level benefits",
+      "Automated end-to-end benefit mapping",
     ],
     impact:[
       "78% reduction in benefit-mapping-related penalties",
-      "Modular support for multi-level benefit structures the legacy system couldn't process",
-      "End-to-end benefit mapping automated, cutting manual configuration effort",
+      "Support for policy structures the earlier system could not process",
+      "End-to-end benefit mapping automated",
     ],
     pmSkills:["System/architecture redesign","Complex business-logic mapping","Domain PM (health insurance)"],
     metrics:[{val:"78%",label:"Fewer mapping penalties"},{val:"E2E",label:"Mapping automated"}],
   },
-  { id:"process-reengineering-bpr", category:"transformation", catLabel:"Process Transformation", tag:"09",
+  { id:"process-reengineering-bpr", category:"transformation", catLabel:"Process Transformation", tag:"08",
     title:"Business Process Re-Engineering Across 11+ Workflows",
-    org:"Paramount Health Services & Insurance TPA · 2023–2024",
-    problem:"11+ business workflows had accumulated inefficiency and manual error over time, with no structured program to diagnose root causes or re-engineer them against measurable outcomes.",
+    org:"Paramount Health Insurance TPA · 2023 to 2024",
+    problem:"11+ business workflows had accumulated inefficiency and manual error, with no structured programme to diagnose root causes or measure improvement.",
     approach:[
-      "Conducted user research and stakeholder interviews across 11+ business workflows to isolate root-cause bottlenecks",
-      "Delivered 18+ technology-enabled initiatives with Product and Engineering to redesign the highest-impact workflows",
-      "Tracked internal user satisfaction and turnaround time before and after each rollout",
+      "Conducted user research and stakeholder interviews across 11+ workflows",
+      "Used data analysis to isolate bottlenecks and redesign the highest-impact workflows",
+      "Delivered 18+ technology initiatives with Product and Engineering, from requirements to UAT",
     ],
     impact:[
-      "Average 21% improvement in process efficiency across workflows touched",
+      "21% average improvement in process efficiency",
       "78% reduction in manual processing errors",
-      "Internal user satisfaction up from 60% to 89%, with 30% reduction in turnaround time",
+      "Internal user satisfaction up from 60% to 89%, turnaround time down 30%",
     ],
     pmSkills:["Process re-engineering","Root-cause analysis","Stakeholder interviews","Cross-functional delivery"],
     metrics:[{val:"21%",label:"Efficiency gain"},{val:"78%",label:"Fewer errors"}],
   },
 ];
 
-/* Sourced directly from the four ₹-denominated case studies above —
-   these values sum to the ₹1.65 Cr+ headline figure, so the hero chart
-   always reflects the real numbers. Sorted by size (not chronology) for
-   a clean ascending read, since the initiatives ran concurrently. */
+/* Sourced from the ₹-denominated case studies above: 20 + 40 + 55 + 70 = 185L,
+   which is the ₹1.85 Cr+ headline. Sorted by size, since the initiatives ran
+   concurrently. */
 const SAVINGS_TRAJECTORY = [
   { id: "ticketing-platform", label: "AI/ML Ticketing", valueL: 20 },
-  { id: "ai-pm-platform", label: "AI PM Platform", valueL: 35 },
   { id: "support-automation", label: "Support Automation", valueL: 40 },
+  { id: "ai-pm-platform", label: "AI PM Platform", valueL: 55 },
   { id: "vendor-governance", label: "Vendor Governance", valueL: 70 },
 ];
 
-/* Each role's OWN annual savings — not a running cumulative total.
-   2022–23 (NexGen) and 2023–24 (Paramount, Sr. Executive) were
-   foundational process/efficiency roles with no ₹-denominated savings
-   tracked yet; ₹20L is what the AI/ML ticketing platform delivered
-   annually during 2024–26; ₹1.45 Cr (₹35L + ₹40L + ₹70L) is what the
-   current CTO Office role delivers annually from 2026 — each figure
-   belongs to that role alone. Summed across all four (0+0+20+145=165L),
-   they tie out to the ₹1.65 Cr+ "total across career" figure shown
-   alongside the chart, which IS the cumulative number — the chart itself
-   is deliberately per-role, not running-total.
+/* Each role's OWN annual savings, not a running total. NexGen (2022–23) and
+   Paramount Sr. Executive (2023–24) were efficiency roles with no ₹ savings
+   tracked; ₹20L is the ticketing platform (Asst. Manager); ₹165L is
+   ₹55L + ₹40L + ₹70L in the current CTO Office role. 0 + 0 + 20 + 165 = 185L,
+   matching the ₹1.85 Cr+ total shown beside the chart.
 
-   keyProjects is read directly off CASE_STUDIES (the "Nine initiatives"
-   in the Work section) by each entry's own `org` year-tag, not invented:
-   2023–2024 → process-reengineering-bpr (1); 2024–2026 → ticketing-platform,
-   benefit-module-revamp (2); 2026 → ai-pm-platform, claims-chatbot,
-   onboarding-transformation, support-automation, recovery-audit,
-   vendor-governance (6). NexGen (2022–23) predates the case-study set, so
-   it's 0. 1+2+6 = 9, matching the Work section's own "Nine initiatives"
-   count exactly. */
+   keyProjects counts CASE_STUDIES by org year-tag: 2023–24 → 1
+   (process-reengineering-bpr); 2024–26 → 2 (ticketing-platform,
+   benefit-module-revamp); 2026 → 5 (ai-pm-platform, claims-chatbot,
+   onboarding-transformation, support-automation, vendor-governance).
+   NexGen predates the case-study set, so 0. 1 + 2 + 5 = 8. */
 const YEARLY_GROWTH = [
-  { year: "2022–23", role: "Project Co-Ordinator",  annualL: 0,   keyProjects: 0, note: "Project Co-Ordinator, NexGen — 12 projects @ 96% efficiency" },
-  { year: "2023–24", role: "Sr. Executive, BPR",    annualL: 0,   keyProjects: 1, note: "Sr. Executive BPR, Paramount — 11+ workflows re-engineered, 78% fewer errors, satisfaction 60%→89%" },
-  { year: "2024–26", role: "Asst. Manager, BPR",    annualL: 20,  keyProjects: 2, note: "Asst. Manager BPR, Paramount — AI/ML ticketing platform, modular Benefits configuration module" },
-  { year: "2026–",   role: "APM, CTO Office",       annualL: 145, keyProjects: 6, note: "APM, Medi Assist CTO Office — AI PM platform, claims chatbot, onboarding transformation, support automation, recovery audit, vendor governance" },
+  { year: "2022–23", role: "Project Coordinator", short: "Coordinator", annualL: 0,   keyProjects: 0, note: "Project Coordinator, NexGen: 12 projects at 96% efficiency" },
+  { year: "2023–24", role: "Sr. Executive, BPR",  short: "Sr. Exec",    annualL: 0,   keyProjects: 1, note: "Sr. Executive BPR, Paramount: 11+ workflows re-engineered, 78% fewer errors, satisfaction 60% to 89%" },
+  { year: "2024–26", role: "Asst. Manager, BPR",  short: "Asst. Mgr",   annualL: 20,  keyProjects: 2, note: "Asst. Manager BPR, Paramount: AI/ML ticketing platform, modular Benefits configuration module" },
+  { year: "2026–",   role: "APM, CTO Office",     short: "APM",         annualL: 165, keyProjects: 5, note: "APM, Medi Assist CTO Office: AI PM platform, claims chatbot, onboarding transformation, support automation, vendor governance" },
 ];
 
 const WORK_FILTERS = [
@@ -316,18 +278,18 @@ const WORK_FILTERS = [
 ];
 
 const TOOLKIT = [
-  { num:"01", title:"Product & Delivery Management",
-    desc:"Roadmapping, sprint execution, and cross-functional delivery governance across engineering, ops, and business.",
-    tools:["Jira","Zoho Sprints","Microsoft Project"] },
-  { num:"02", title:"Process & Systems Design",
-    desc:"Mapping workflows end-to-end and designing prototypes that translate complexity into something a team can act on.",
-    tools:["Figma","Microsoft Visio","Mermaid"] },
-  { num:"03", title:"Data & Analytics",
-    desc:"Turning operational data into decisions — dashboards, query-level analysis, and executive-ready reporting.",
-    tools:["Power BI","Tableau","Looker Studio","Advanced Excel","SQL"] },
-  { num:"04", title:"AI & Automation",
-    desc:"Applying AI tooling directly to product workflows — from query automation to AI-assisted internal platforms.",
-    tools:["Claude","ChatGPT","Gemini","Ollama","GitHub Copilot"] },
+  { num:"01", title:"Product Strategy & Discovery",
+    desc:"From problem discovery to a prioritized roadmap, backed by research and written requirements.",
+    tools:["Product Vision & Roadmapping","Problem Discovery","Market Research","PRD/BRD Authorship","User Journey Mapping","Usability Testing","Feature Prioritization","Agile/Scrum","Jira","Zoho Sprints"] },
+  { num:"02", title:"Analytics & Metrics",
+    desc:"Turning operational data into decisions: efficiency tracking, experimentation, and executive-ready reporting.",
+    tools:["Cohort Analysis","A/B Testing","ROI/Efficiency Tracking","Data Modelling","Power BI","Tableau","Looker Studio","SQL","Advanced Excel"] },
+  { num:"03", title:"Prototyping & Design",
+    desc:"Wireframes and prototypes that turn complex workflows into something a team can act on and test.",
+    tools:["Wireframing","Interactive Prototyping","Cross-Functional UAT Design","Figma","Microsoft Visio","Mermaid AI","PowerPoint"] },
+  { num:"04", title:"Technical & AI",
+    desc:"Applying AI and system thinking directly to product workflows, from query automation to internal platforms.",
+    tools:["AI/ML Workflow Automation","Prompt Engineering","API Integrations","System Architecture","BPR","Vendor & SOW Governance","Claude","ChatGPT","Gemini","Ollama","GitHub Copilot"] },
 ];
 
 const CERTIFICATIONS = [
@@ -371,7 +333,7 @@ const CERTIFICATIONS = [
 
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/* One rAF-batched scroll pass for every scroll-driven effect — avoids the
+/* One rAF-batched scroll pass for every scroll-driven effect, avoids the
    layout thrash (and visible stutter) of several independent listeners. */
 const scrollHandlers = [];
 let scrollFrame = 0;
@@ -383,7 +345,7 @@ window.addEventListener("scroll", () => {
 
 /* ============================================================
    RENDER: Core Focus (hero panel)
-   All four pillars shown at once as a static list — no carousel,
+   All four pillars shown at once as a static list, no carousel,
    no timers, nothing to click through to see the full picture.
    ============================================================ */
 (function focusCard(){
@@ -428,7 +390,7 @@ window.addEventListener("scroll", () => {
     const barY = padT + (plotH - barH);
     bars += `<rect class="chart-bar" tabindex="0" role="button" data-id="${d.id}"
       x="${(cx - barW / 2).toFixed(1)}" y="${barY.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(barH,1).toFixed(1)}" rx="2">
-      <title>${d.label} — ₹${d.valueL}L annual savings. Click for the full case study.</title>
+      <title>${d.label}: ₹${d.valueL}L annual savings. Click for the full case study.</title>
     </rect>`;
 
     const cy = padT + (plotH - (cum[i] / maxCum) * plotH);
@@ -449,14 +411,23 @@ window.addEventListener("scroll", () => {
    RENDER: 4-year growth chart (metrics section)
    Two real series from YEARLY_GROWTH, sharing an x-axis by role but
    each on its own scale: cumulative documented savings (line + area,
-   left/implicit axis) and key initiatives delivered that role — a
+   left/implicit axis) and key initiatives delivered that role, a
    count read straight off CASE_STUDIES (bars, own scale, capped below
    the line's headroom so the two never fight for the same pixels).
    ============================================================ */
 (function renderGrowthChart(){
   const svg = document.getElementById("growthChart");
   if (!svg) return;
-  const W = 720, H = 220, padL = 34, padR = 16, padT = 20, padB = 34;
+  /* Wide layout is stretched to the card (preserveAspectRatio none). On a
+     phone that would squash the labels to ~5px, so the narrow layout gets its
+     own compact viewBox, drawn 1:1 with short role labels. */
+  const narrowMQ = window.matchMedia("(max-width:560px)");
+  function draw(){
+  const narrow = narrowMQ.matches;
+  const W = narrow ? 340 : 720, H = narrow ? 230 : 220;
+  const padL = narrow ? 20 : 34, padR = narrow ? 20 : 16, padT = 20, padB = 34;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("preserveAspectRatio", narrow ? "xMidYMid meet" : "none");
   const plotW = W - padL - padR, plotH = H - padT - padB;
   const n = YEARLY_GROWTH.length;
   const slot = plotW / (n - 1);
@@ -477,7 +448,7 @@ window.addEventListener("scroll", () => {
   const xAt = i => padL + slot * i;
   const yAt = v => lineBottom - (v / maxVal) * (lineBottom - lineTop);
   const barHAt = v => Math.max((v / maxProj) * barBandH, 2.5);
-  /* rounded-top-only bar path — a full border-radius rect reads as a pill
+  /* rounded-top-only bar path, a full border-radius rect reads as a pill
      at the small heights zero/low counts produce, so only the top corners curve */
   const barPath = (x, y, w, h, r) => {
     r = Math.min(r, h, w / 2);
@@ -498,7 +469,7 @@ window.addEventListener("scroll", () => {
 
   /* value labels sit a fixed offset above their point, but for low/zero
      values that offset can coincidentally land right on a grid line (or,
-     for the top-most point, poke above the plot area entirely) — nudge
+     for the top-most point, poke above the plot area entirely), nudge
      clear of both so the label is always legible, whatever the numbers. */
   const labelYAt = cy => {
     let y = Math.max(cy - 14, 10);
@@ -507,11 +478,12 @@ window.addEventListener("scroll", () => {
   };
 
   const pts = YEARLY_GROWTH.map((d, i) => `${xAt(i).toFixed(1)},${yAt(d.annualL).toFixed(1)}`);
-  /* extruded shadow ribbon under the value line — reads as depth on the tilted plane */
+  /* extruded shadow ribbon under the value line, reads as depth on the tilted plane */
   const ribbonPts = YEARLY_GROWTH.map((d, i) => `${xAt(i).toFixed(1)},${(yAt(d.annualL) + 9).toFixed(1)}`);
   const areaPts = `${padL.toFixed(1)},${lineBottom.toFixed(1)} ${pts.join(" ")} ${(W - padR).toFixed(1)},${lineBottom.toFixed(1)}`;
 
-  const barW = slot * 0.3;
+  const barW = narrow ? Math.min(slot * 0.3, 30) : slot * 0.3;
+  const totalProj = YEARLY_GROWTH.reduce((a, d) => a + d.keyProjects, 0);
   let bars = "", dots = "", yearLabels = "", valLabels = "", projLabels = "";
   YEARLY_GROWTH.forEach((d, i) => {
     const cx = xAt(i), cy = yAt(d.annualL);
@@ -520,7 +492,7 @@ window.addEventListener("scroll", () => {
     const barX = i === 0 ? cx : i === n - 1 ? cx - barW : cx - barW / 2;
     const barY = baseline - barH;
     bars += `<path class="growth-proj-bar" d="${barPath(barX, barY, barW, barH, 3)}">
-      <title>${d.role} — ${d.keyProjects} of 8 key initiatives delivered this role (${d.note})</title>
+      <title>${d.role}: ${d.keyProjects} of ${totalProj} key initiatives delivered in this role (${d.note})</title>
     </path>`;
     /* pinned just above the role-name row (a fixed offset from the
        baseline, not the bar's own top) so it never collides with the
@@ -528,10 +500,10 @@ window.addEventListener("scroll", () => {
     projLabels += `<text class="growth-proj-label" x="${(barX + barW / 2).toFixed(1)}" y="${(H - 26).toFixed(1)}" text-anchor="middle">${d.keyProjects}</text>`;
 
     dots += `<circle class="growth-dot" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5">
-      <title>${d.year} — ${d.note}. Annual documented savings this role: ${d.annualL > 0 ? "₹" + d.annualL + "L" : "pre-monetized"}</title>
+      <title>${d.year}: ${d.note}. Annual documented savings in this role: ${d.annualL > 0 ? "₹" + d.annualL + "L" : "not monetized"}</title>
     </circle>`;
-    yearLabels += `<text class="growth-year-label" x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="${anchor}">${d.role}</text>`;
-    const valText = d.annualL >= 100 ? `₹${(d.annualL / 100).toFixed(2)}Cr+` : d.annualL > 0 ? `₹${d.annualL}L` : "—";
+    yearLabels += `<text class="growth-year-label" x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="${anchor}">${narrow ? d.short : d.role}</text>`;
+    const valText = d.annualL >= 100 ? `₹${(d.annualL / 100).toFixed(2)}Cr+` : d.annualL > 0 ? `₹${d.annualL}L` : "n/a";
     valLabels += `<text class="growth-val-label" x="${cx.toFixed(1)}" y="${labelYAt(cy).toFixed(1)}" text-anchor="${anchor}">${valText}</text>`;
   });
 
@@ -555,6 +527,9 @@ window.addEventListener("scroll", () => {
     <polyline class="growth-line" points="${pts.join(" ")}" />
     ${dots}${yearLabels}${valLabels}${projLabels}
   `;
+  }
+  draw();
+  narrowMQ.addEventListener("change", draw);
 })();
 
 /* ============================================================
@@ -837,7 +812,7 @@ window.addEventListener("pointermove", e => {
   });
 }, { passive: true });
 
-/* Shared damped-spring integrator (semi-implicit Euler) — standing in for
+/* Shared damped-spring integrator (semi-implicit Euler), standing in for
    framer-motion's useSpring across both the magic cursor and the liquid
    name-hover effect below. Verified numerically stable and convergent at
    the stiffness/damping/mass values each caller uses, including under
@@ -849,7 +824,7 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
 }
 
 /* ============================================================
-   INTERACTION: magic cursor — ported from the requested Framer
+   INTERACTION: magic cursor, ported from the requested Framer
    "SmoothCursor" component (framer.com/m/Smoothcursor-o8zdlR.js)
    into vanilla JS, since this site has no React/build step. A
    custom pointer icon chases the real cursor via damped springs on
@@ -943,7 +918,7 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
 })();
 
 /* ============================================================
-   INTERACTION: liquid name hover — the hero's "Jatin Chaudhary" name
+   INTERACTION: liquid name hover, the hero's "Jatin Chaudhary" name
    splits into per-letter spans that elastically stretch/lean toward
    a nearby cursor, then spring back to their crisp rest shape as the
    cursor moves away. Approximates a canvas-shader liquid warp with
@@ -1011,7 +986,7 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
   function relayout() { measureRestPositions(); layoutGradientSlices(); }
   relayout();
   window.addEventListener("resize", relayout);
-  // fonts load asynchronously (Google Fonts <link>) — if this ran against
+  // fonts load asynchronously (Google Fonts <link>), if this ran against
   // a fallback font, both the rest-positions and the gradient slices
   // would be measured against widths that are about to shift
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
@@ -1053,7 +1028,7 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
 })();
 
 /* ============================================================
-   PORTFOLIO CHATBOT — a ghost mascot launcher (ported from the
+   PORTFOLIO CHATBOT, a ghost mascot launcher (ported from the
    requested Framer "Interactive Ghost" component's math: wavy-cloth
    body path generation, mood-based facial-expression targets, cursor
    eye-tracking, float/sway physics, and its default lime-green colors,
@@ -1061,7 +1036,7 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
    wired to a real chat panel. The source component's own "chat" was just a static
    quote bubble with no backend; the actual conversation here calls
    the Gemini proxy in apps-script/chatbot.gs (see CHATBOT_ENDPOINT
-   above — the API key itself never touches this file or the repo).
+   above, the API key itself never touches this file or the repo).
 
    Unlike the magic cursor / liquid name (purely decorative, fully
    skipped under reduced-motion or on touch), this is a FUNCTIONAL
@@ -1074,7 +1049,7 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
    relative to its OWN container's bounds, which works when that
    container is hero-sized. Here it's a small 76px launcher button, so
    literally porting that would mean the eyes only ever react within
-   a 76px box — barely noticeable. Tracking against a wider fixed
+   a 76px box, barely noticeable. Tracking against a wider fixed
    radius around the launcher's actual position instead, so cursor
    movement across a meaningful part of the page is visible on the
    ghost's eyes, the way the effect clearly reads in the source demo.
@@ -1128,7 +1103,7 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
       <div class="chatbot-header">
         <div>
           <div class="chatbot-header-title">Ask about Jatin</div>
-          <div class="chatbot-header-sub">${CHATBOT_ENDPOINT ? "Roles, projects, impact — ask away" : "Demo mode — proxy not connected yet"}</div>
+          <div class="chatbot-header-sub">${CHATBOT_ENDPOINT ? "Roles, projects, impact. Ask away" : "Demo mode: proxy not connected yet"}</div>
         </div>
         <button class="chatbot-close" id="chatbotClose" type="button" aria-label="Close chat"><i data-lucide="x" class="icon"></i></button>
       </div>
@@ -1228,7 +1203,7 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
   }
 
   if (prefersReducedMotion) {
-    renderGhost(0); // one static neutral frame — no ongoing loop
+    renderGhost(0); // one static neutral frame, no ongoing loop
   } else {
     let visible = true;
     new IntersectionObserver(entries => { visible = entries[0].isIntersecting; }, { threshold: 0 }).observe(launcher);
@@ -1276,16 +1251,16 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
   function escapeHtml(s) { return s.replace(/[&<>"']/g, c => MD_ESCAPE[c]); }
 
   /* Gemini replies come back as markdown (bold, bullet/numbered lists,
-     paragraphs) — plain textContent was dumping the raw ** and * / 1.
+     paragraphs), plain textContent was dumping the raw ** and * / 1.
      characters as visible clutter and collapsing all line breaks, which
      is exactly the "unstructured" look reported. This renders that
      small markdown subset as real HTML instead. Escapes everything
-     FIRST, so only tags this function itself adds ever reach the DOM —
+     FIRST, so only tags this function itself adds ever reach the DOM -
      model output is treated as untrusted text, never as raw HTML. */
   const BULLET_RE = /^[*-]\s+/;
   const NUMBERED_RE = /^\d+\.\s+/;
 
-  /* Line-by-line within each block, not "is this whole block a list" —
+  /* Line-by-line within each block, not "is this whole block a list" -
      a model reply that puts a bold header directly above its bullets
      (single newline, no blank line) used to fail the old all-or-nothing
      check and fall back to one <p> with the raw "* " markers visible
@@ -1361,7 +1336,7 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
     if (!CHATBOT_ENDPOINT) {
       await new Promise(r => setTimeout(r, 500));
       hideTyping();
-      addMessage("bot", "The chatbot proxy isn't connected yet — see apps-script/chatbot.gs for setup. In the meantime, feel free to use the contact form below!", true);
+      addMessage("bot", "The chatbot proxy isn't connected yet. See apps-script/chatbot.gs for setup. In the meantime, feel free to use the contact form below!", true);
       setMood("sad");
       setTimeout(() => setMood("neutral"), 2000);
       sending = false;
@@ -1380,12 +1355,12 @@ function dampedSpringStep(s, target, stiffness, damping, mass, dt) {
         addMessage("bot", data.error, true);
         setMood("sad");
       } else {
-        addMessage("bot", data.reply || "Sorry, I didn't catch that — could you rephrase?");
+        addMessage("bot", data.reply || "Sorry, I didn't catch that. Could you rephrase?");
         setMood("happy");
       }
     } catch (err) {
       hideTyping();
-      addMessage("bot", "Couldn't reach the assistant right now — please try again, or use the contact form.", true);
+      addMessage("bot", "Couldn't reach the assistant right now. Please try again, or use the contact form.", true);
       setMood("sad");
     } finally {
       setTimeout(() => setMood("neutral"), 2000);
@@ -1465,7 +1440,7 @@ contactForm.addEventListener("submit", async e => {
       contactSuccess.classList.add("show");
     } else {
       const subject = encodeURIComponent(`Portfolio contact from ${name.value.trim()}`);
-      const body = encodeURIComponent(`${message.value.trim()}\n\n— ${name.value.trim()} (${email.value.trim()})`);
+      const body = encodeURIComponent(`${message.value.trim()}\n\n- ${name.value.trim()} (${email.value.trim()})`);
       window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
       contactForm.classList.add("hide");
       contactSuccess.classList.add("show");
@@ -1473,7 +1448,7 @@ contactForm.addEventListener("submit", async e => {
   } catch {
     submitBtn.disabled = false;
     submitBtn.textContent = originalText;
-    showToast("Couldn't send — please try again or email me directly.");
+    showToast("Couldn't send. Please try again or email me directly.");
   }
 });
 
@@ -1489,7 +1464,7 @@ function toggleFieldError(groupId, isError, onError) {
 document.getElementById("emailCopyBtn").addEventListener("click", () => {
   navigator.clipboard?.writeText(CONTACT_EMAIL)
     .then(() => showToast("Email copied to clipboard!"))
-    .catch(() => showToast("Couldn't copy — email is " + CONTACT_EMAIL));
+    .catch(() => showToast("Couldn't copy. Email is " + CONTACT_EMAIL));
 });
 
 let toastTimer;
@@ -1502,12 +1477,12 @@ function showToast(msg) {
 }
 
 /* ============================================================
-   ICONS — render all Lucide placeholders inserted above
+   ICONS, render all Lucide placeholders inserted above
    ============================================================ */
 lucide.createIcons();
 
 /* ============================================================
-   THEME TOGGLE — persisted, animated, syncs the 3D hero scene
+   THEME TOGGLE, persisted, animated, syncs the 3D hero scene
    ============================================================ */
 const themeToggle = document.getElementById("themeToggle");
 const themeListeners = [];
@@ -1537,7 +1512,7 @@ onScrollBatched(updateScrollProgress);
 updateScrollProgress();
 
 /* ============================================================
-   NAV SCROLL-SPY — highlight the section currently in view
+   NAV SCROLL-SPY, highlight the section currently in view
    ============================================================ */
 const navLinkEls = Array.from(document.querySelectorAll("#navLinks a"));
 const spySections = navLinkEls.map(a => document.querySelector(a.getAttribute("href"))).filter(Boolean);
@@ -1553,12 +1528,12 @@ onScrollBatched(updateNavSpy);
 updateNavSpy();
 
 /* ============================================================
-   3D-INTERACTIVE BACKGROUND — one continuous rAF loop with a damped
+   3D-INTERACTIVE BACKGROUND, one continuous rAF loop with a damped
    (critically-eased) pointer follow: the target moves instantly, the
    rendered value eases toward it every frame, so nothing snaps or
    stutters. Three layers read the same eased position at different
-   rates — the hero card's perspective tilt, each 3D orb's depth
-   parallax, and the page-wide ambient glow drift — which is what
+   rates, the hero card's perspective tilt, each 3D orb's depth
+   parallax, and the page-wide ambient glow drift, which is what
    reads as depth rather than a flat pan. The loop parks itself when
    the pointer settles and wakes on the next move.
    ============================================================ */
@@ -1569,7 +1544,7 @@ updateNavSpy();
   const glowField = document.getElementById("glowField");
   const isNarrow = () => window.matchMedia("(max-width:1000px)").matches;
 
-  const EASE = 0.075;            // per-frame approach rate — lower is smoother/slower
+  const EASE = 0.075;            // per-frame approach rate, lower is smoother/slower
   let tx = 0, ty = 0;            // pointer target, normalised −1…1
   let cx = 0, cy = 0;            // eased current position
   let running = false;
@@ -1586,7 +1561,7 @@ updateNavSpy();
     if (!narrow) {
       for (const layer of orbLayers) {
         const d = parseFloat(layer.dataset.depth) || 24;
-        /* horizontal travel is damped hard — the gutter orbs must never
+        /* horizontal travel is damped hard, the gutter orbs must never
            drift far enough inward to reach the text column */
         layer.style.transform =
           `translate3d(${(cx * d * 0.32).toFixed(2)}px, ${(cy * d).toFixed(2)}px, 0) scale(${(1 + Math.abs(cy) * 0.014).toFixed(4)})`;
@@ -1611,7 +1586,7 @@ updateNavSpy();
 })();
 
 /* ============================================================
-   EYE-FOLLOW BUTTON — ported from the requested Framer "Eye Follow
+   EYE-FOLLOW BUTTON, ported from the requested Framer "Eye Follow
    Button" component (see the CSS block of the same name for why only
    the eye-tracking itself, not the whole component, was portable).
    Pupils track the pointer the same way the chatbot ghost's eyes do:
@@ -1639,7 +1614,7 @@ updateNavSpy();
 })();
 
 /* ============================================================
-   FOCUS REVEAL (phone number) — see the CSS block of the same name.
+   FOCUS REVEAL (phone number), see the CSS block of the same name.
    Toggles the reveal via a JS class instead of CSS :hover, which
    Chromium doesn't reliably apply here since the ancestor also has
    its own backdrop-filter (a known filter/backdrop-filter repaint
@@ -1661,15 +1636,15 @@ updateNavSpy();
 })();
 
 /* ============================================================
-   ARCADE — retro canvas shooter, ported from the requested Framer
+   ARCADE, retro canvas shooter, ported from the requested Framer
    "Space Shooter" component. Its only Framer-specific imports are
    addPropertyControls/ControlType, which just feed Framer's own
-   editor panel — the actual game is plain React state + canvas 2D
+   editor panel, the actual game is plain React state + canvas 2D
    calls, so the rules below (800x600 world, pixel-snapped drawing,
    200ms auto-fire, 1s enemy spawns, AABB collision, 0.5%/frame enemy
    fire chance) are ported 1:1. What changed for this site: score and
    game-over text moved off the canvas into themed DOM elements (so
-   they follow light/dark like the rest of the page — the canvas
+   they follow light/dark like the rest of the page, the canvas
    itself stays a fixed dark "screen" the way an embedded video would),
    touch input is a single pointer-drag-to-follow instead of the
    original's quadrant-to-arrow-key mapping, and the palette was
@@ -1766,7 +1741,7 @@ updateNavSpy();
     state.explosions.push({ x: state.player.x + state.player.width / 2, y: state.player.y + state.player.height / 2, frame: 0 });
     stopLoop();
     overlayTitle.textContent = "GAME OVER";
-    overlayMsg.textContent = `Final score: ${score} — press any key, tap, or hit restart.`;
+    overlayMsg.textContent = `Final score: ${score}. Press any key, tap, or hit restart.`;
     overlayAction = startGame;
     startBtn.textContent = "Restart";
     overlay.classList.remove("hide");
@@ -1876,7 +1851,7 @@ updateNavSpy();
     phase = "paused";
     stopLoop();
     overlayTitle.textContent = "PAUSED";
-    overlayMsg.textContent = "Take a beat — resume whenever you're ready.";
+    overlayMsg.textContent = "Take a beat. Resume whenever you're ready.";
     overlayAction = resumeGame;
     startBtn.textContent = "Resume";
     overlay.classList.remove("hide");
@@ -1899,7 +1874,7 @@ updateNavSpy();
     state = freshState();
     render();
     overlayTitle.textContent = "SPACE SHOOTER";
-    overlayMsg.textContent = "Arrow keys or drag to move — your ship fires on its own. Survive as long as you can.";
+    overlayMsg.textContent = "Arrow keys or drag to move. Your ship fires on its own. Survive as long as you can.";
     overlayAction = startGame;
     startBtn.textContent = "Play";
     overlay.classList.remove("hide");
@@ -1931,7 +1906,7 @@ updateNavSpy();
   ["pointerup", "pointercancel", "pointerleave"].forEach(ev => canvas.addEventListener(ev, () => { dragTarget = null; }));
 
   // pause the loop off-screen to save CPU, resume when it's back in view
-  // (this is separate from the user-facing Pause button — going offscreen
+  // (this is separate from the user-facing Pause button, going offscreen
   // never changes `phase`, so coming back into view resumes automatically
   // only if the player hadn't paused it themselves)
   new IntersectionObserver(entries => {
